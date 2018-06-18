@@ -849,8 +849,18 @@ static void *generateMissingTrampoline16(const char *_module, const char *_entry
     memcpy(ptr, &GLoaderState.original_ss, 2); ptr += 2;
     *(ptr++) = 0x8E;  /* mov ss,ecx... */
     *(ptr++) = 0xD1;  /*  ...mov ss,ecx */
-    *(ptr++) = 0x89;  /* mov esp,eax... */
-    *(ptr++) = 0xC4;  /*  ...mov esp,eax */
+
+    /* Lx modules will hopfully have big enough stacks */
+    if (!GLoaderState.main_module->is_lx) {
+        *(ptr++) = 0x36;  /* ss:  ss == ds always?? */
+        *(ptr++) = 0x8B;  /* mov esp,0xabcdefgh */
+        *(ptr++) = 0x25;  /*  ...mov esp,0xabcdefgh */
+        uint32_t esptmp = (uint32_t)&GLoaderState.original_esp;
+        memcpy(ptr, &esptmp, 4); ptr += 4;
+    } else {
+        *(ptr++) = 0x89;  /* mov esp,eax... */
+        *(ptr++) = 0xC4;  /*  ...mov esp,eax */
+    }
 
     if (GLoaderState.original_ss != GLoaderState.original_ds) {
         *(ptr++) = 0x66;  /* mov cx,0x8888... */
@@ -1051,7 +1061,12 @@ INT 0x3           ; if it returns here, crash and burn.
     *(ptr++) = 0xCD;  /* int 0x3... */
     *(ptr++) = 0x03;  /*  ...int 0x3 */
 
-    __asm__ __volatile__("jmp *%%eax\n\t" : /* no outputs */ : "a" (segment) : "memory");
+    __asm__ __volatile__(
+        "mov %%esp,%0\n\t"
+        "jmp *%%eax\n\t"
+            : "=m" (GLoaderState.original_esp)
+            : "a" (segment)
+            : "memory");
 
     __builtin_unreachable();
 } // runNeModule
