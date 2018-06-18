@@ -185,8 +185,17 @@ RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling
     memcpy(ptr, &GLoaderState.original_ss, 2); ptr += 2; \
     *(ptr++) = 0x8E;  /* mov ss,ecx... */ \
     *(ptr++) = 0xD1;  /*  ...mov ss,ecx */ \
-    *(ptr++) = 0x89;  /* mov esp,eax... */ \
-    *(ptr++) = 0xC4;  /*  ...mov esp,eax */ \
+    /* Lx modules will hopfully have big enough stacks */ \
+    if (!GLoaderState.main_module->is_lx) { \
+        *(ptr++) = 0x36;  /* ss:  ss == ds always?? */ \
+        *(ptr++) = 0x8B;  /* mov esp,0xabcdefgh */ \
+        *(ptr++) = 0x25;  /*  ...mov esp,0xabcdefgh */ \
+        uint32_t esptmp = (uint32_t)&GLoaderState.original_esp; \
+        memcpy(ptr, &esptmp, 4); ptr += 4; \
+    } else { \
+        *(ptr++) = 0x89;  /* mov esp,eax... */ \
+        *(ptr++) = 0xC4;  /*  ...mov esp,eax */ \
+    } \
     *(ptr++) = 0x83;  /* add eax,byte +0x10... */ \
     *(ptr++) = 0xC0;  /*  ...add eax,byte +0x10 */ \
     *(ptr++) = 0x10;  /*  ...add eax,byte +0x10 */ \
