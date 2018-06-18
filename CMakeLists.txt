@@ -72,7 +72,7 @@ elseif(CURSES_HAVE_NCURSES_CURSES_H)
 endif()
 
 # !!! FIXME
-include_directories("/usr/local/include/SDL2")
+include_directories("/usr/include/SDL2")
 
 add_library(2ine SHARED "lib2ine.c")
 if(LX_LEGACY)
@@ -95,11 +95,11 @@ target_link_libraries(doscalls "pthread")
 target_link_libraries(viocalls ncursesw)
 
 # !!! FIXME: clean this up/
-if(LX_LEGACY)
-    target_link_libraries(pmwin "${CMAKE_CURRENT_SOURCE_DIR}/libSDL2-2.0.so.0")
-else()
+#if(LX_LEGACY)
+#    target_link_libraries(pmwin "${CMAKE_CURRENT_SOURCE_DIR}/libSDL2-2.0.so.0")
+#else()
     target_link_libraries(pmwin "SDL2")
-endif()
+#endif()
 
 add_executable(lx_dump lx_dump.c)
 

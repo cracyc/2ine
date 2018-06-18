@@ -683,7 +683,7 @@ static const char *sdlEventName(const SDL_EventType ev)
         EVCASE(SDL_KEYUP);
         EVCASE(SDL_TEXTEDITING);
         EVCASE(SDL_TEXTINPUT);
-        EVCASE(SDL_KEYMAPCHANGED);
+        //EVCASE(SDL_KEYMAPCHANGED);
         EVCASE(SDL_MOUSEMOTION);
         EVCASE(SDL_MOUSEBUTTONDOWN);
         EVCASE(SDL_MOUSEBUTTONUP);
@@ -709,13 +709,13 @@ static const char *sdlEventName(const SDL_EventType ev)
         EVCASE(SDL_MULTIGESTURE);
         EVCASE(SDL_CLIPBOARDUPDATE);
         EVCASE(SDL_DROPFILE);
-        EVCASE(SDL_DROPTEXT);
-        EVCASE(SDL_DROPBEGIN);
-        EVCASE(SDL_DROPCOMPLETE);
-        EVCASE(SDL_AUDIODEVICEADDED);
-        EVCASE(SDL_AUDIODEVICEREMOVED);
-        EVCASE(SDL_RENDER_TARGETS_RESET);
-        EVCASE(SDL_RENDER_DEVICE_RESET);
+        //EVCASE(SDL_DROPTEXT);
+        //EVCASE(SDL_DROPBEGIN);
+        //EVCASE(SDL_DROPCOMPLETE);
+        //EVCASE(SDL_AUDIODEVICEADDED);
+        //EVCASE(SDL_AUDIODEVICEREMOVED);
+        //EVCASE(SDL_RENDER_TARGETS_RESET);
+        //EVCASE(SDL_RENDER_DEVICE_RESET);
         EVCASE(SDL_USEREVENT);
         #undef EVCASE
         default: break;
@@ -741,8 +741,8 @@ static const char *sdlWindowEventName(const SDL_WindowEventID ev)
         EVCASE(SDL_WINDOWEVENT_FOCUS_GAINED);
         EVCASE(SDL_WINDOWEVENT_FOCUS_LOST);
         EVCASE(SDL_WINDOWEVENT_CLOSE);
-        EVCASE(SDL_WINDOWEVENT_TAKE_FOCUS);
-        EVCASE(SDL_WINDOWEVENT_HIT_TEST);
+        //EVCASE(SDL_WINDOWEVENT_TAKE_FOCUS);
+        //EVCASE(SDL_WINDOWEVENT_HIT_TEST);
         #undef EVCASE
         default: break;
     }
@@ -1045,7 +1045,7 @@ BOOL WinPostMsg(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
     }
 
     int mousex, mousey;
-    SDL_GetGlobalMouseState(&mousex, &mousey);  FIXME("track this ourselves?");
+    SDL_GetRelativeMouseState(&mousex, &mousey);  FIXME("track this ourselves?");
     const QMSG qmsg = { hwnd, msg, mp1, mp2, currentSystemTicks(), { mousex, mousey }, 0 };
     const ERRORID rc = postMessage(anchor, &qmsg);
     if (rc) {
