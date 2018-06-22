@@ -549,6 +549,7 @@ OS2EXPORT APIRET16 OS2API16 Dos16CreateThread(ULONG pfn, PUSHORT ptid, ULONG pst
 OS2EXPORT APIRET16 OS2API16 Dos16Sleep(ULONG msec) OS2APIINFO(32);
 OS2EXPORT APIRET16 OS2API16 Dos16SuspendThread(USHORT tid) OS2APIINFO(27);
 OS2EXPORT APIRET16 OS2API16 Dos16ResumeThread(USHORT tid) OS2APIINFO(26);
+OS2EXPORT APIRET16 OS2API16 DosSizeSeg(USHORT sel, PULONG size) OS2APIINFO(126);
 
 // !!! FIXME: these should probably get sorted alphabetically and/or grouped
 // !!! FIXME:  into areas of functionality, but for now, I'm just listing them
