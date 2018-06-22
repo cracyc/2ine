@@ -3395,6 +3395,15 @@ APIRET16 Dos16ReallocSeg(USHORT size, USHORT sel)
     return NO_ERROR;
 } // Dos16ReallocSeg
 
+APIRET16 DosSizeSeg(USHORT sel, PULONG size)
+{
+    TRACE_NATIVE("DosSizeSeg(%u, %u)", (uint) sel, (uint) size);
+    // Segments are only ever 64K currently
+    FIXME("this implementation is severely lacking");
+    if (size) *size = 65536;
+    return NO_ERROR;
+}
+
 APIRET16 Dos16FreeSeg(USHORT sel)
 {
     TRACE_NATIVE("Dos16FreeSeg(%u)", (uint) sel);
