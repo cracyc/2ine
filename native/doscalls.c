@@ -14,6 +14,7 @@
 #include <time.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <stddef.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -78,6 +79,7 @@ typedef struct Thread
     PFNTHREAD fn;
     ULONG fnarg;
     uint16 selector;
+    HEV suspend;
     struct Thread *prev;
     struct Thread *next;
 } Thread;
@@ -110,6 +112,7 @@ static LINFOSEG *linfo;
 static SEL linfosel;
 
 static HDIR *hdir16 = 0;
+static TID *tid16 = 0;
 
 static int grabLock(pthread_mutex_t *lock)
 {
@@ -1310,6 +1313,11 @@ APIRET DosCreateThread(PTID ptid, PFNTHREAD pfn, ULONG param, ULONG flag, ULONG 
     thread->stacklen = stacksize;
     thread->fn = pfn;
     thread->fnarg = param;
+    APIRET ret = DosCreateEventSem(NULL, &thread->suspend, 0, 0);
+    if (ret) {
+        free(thread);
+        return ret;
+    }
 
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -2996,6 +3004,26 @@ APIRET DosDupHandle(HFILE hFile, PHFILE pHfile)
     return DosDupHandle_implementation(hFile, pHfile);
 } // DosDupHandle
 
+APIRET DosSuspendThread(TID tid)
+{
+    TRACE_NATIVE("DosSuspendThread(%u)", tid);
+    if (!tid)
+        return ERROR_INVALID_HANDLE;    
+    Thread *th = (Thread *) tid;
+    pthread_kill(th->thread, SIGUSR1);
+    return NO_ERROR;
+}
+
+APIRET DosResumeThread(TID tid)
+{
+    TRACE_NATIVE("DosResumeThread(%u)", tid);
+    if (!tid)
+        return ERROR_INVALID_HANDLE;    
+    Thread *th = (Thread *) tid;
+    DosPostEventSem(th->suspend);
+    return NO_ERROR;
+}
+
 APIRET16 Dos16GetVersion(PUSHORT pver)
 {
     TRACE_NATIVE("Dos16GetVersion(%p)", pver);
@@ -3256,14 +3284,17 @@ APIRET16 Dos16Open(PSZ pszFileName, PUSHORT pHf, PULONG pulAction, ULONG cbFile,
 
 APIRET16 Dos16FindFirst(PSZ pszFileSpec, PSHORT phdir, USHORT flAttribute, PVOID pfindbuf, USHORT cbBuf, PUSHORT pcFileNames, ULONG res)
 {
+    grabLock(&GMutexDosCalls);
     if (!hdir16)
         hdir16 = calloc(10, sizeof(HDIR)); // 10 dir handles
+    ungrabLock(&GMutexDosCalls);
     ULONG hdir32 = *phdir;
     ULONG cfn = *pcFileNames;
     APIRET ret = DosFindFirst(pszFileSpec, &hdir32, flAttribute, pfindbuf, cbBuf, &cfn, -1);
     if (ret && (ret != ERROR_EAS_DIDNT_FIT))
         return ret;
     int i;
+    grabLock(&GMutexDosCalls);
     for (i = 0; i < 10; i++)
     {
         if(!hdir16[i])
@@ -3272,6 +3303,7 @@ APIRET16 Dos16FindFirst(PSZ pszFileSpec, PSHORT phdir, USHORT flAttribute, PVOID
     if (i == 10)
         return ERROR_NO_MORE_FILES;
     hdir16[i] = hdir32;
+    ungrabLock(&GMutexDosCalls);
     *phdir = i;
     *pcFileNames = cfn;
     return ret;
@@ -3366,6 +3398,178 @@ APIRET16 Dos16ChgFilePtr(USHORT handle, LONG distance, USHORT whence, PULONG new
     return (APIRET16) DosSetFilePtr_implementation(handle, distance, whence, newoffset);
 } // Dos16ChgFilePtr
 
+static uint16 th_tsel = 0xffff;
+static void *th_segment = 0;
+
+static void *os2Thread16Entry(void *arg)
+{
+    // put our thread's TIB structs on the stack and call that the top of the stack.
+    uint8 tibspace[LXTIBSIZE];
+    memset(tibspace, '\0', LXTIBSIZE);  // make sure TLS slots are clear, etc.
+    Thread *thread = (Thread *) arg;
+    // stacksize is unknown
+    GLoaderState.initOs2Tib(tibspace, GLoaderState.convert1616to32(thread->fnarg), 0, (TID) thread);
+    thread->selector = GLoaderState.setOs2Tib(tibspace);
+    pthread_cleanup_push(os2ThreadCleanup, thread);
+    __attribute__((fastcall)) void (*fn)(ULONG, ULONG) = th_segment;
+    fn((ULONG) thread->fn, (ULONG) thread->fnarg);
+    pthread_cleanup_pop(1);
+    return NULL;  // OS/2 threads don't return a value here.
+} // os2Thread16Entry
+
+APIRET16 Dos16CreateThread(ULONG pfn, PUSHORT ptid, ULONG pstack)
+{
+    TRACE_NATIVE("Dos16CreateThread(%u, %p, %u)", pfn, ptid, pstack);
+
+    Thread *thread = (Thread *) malloc(sizeof (Thread));
+    int i = 0;
+
+    if (!thread)
+        return ERROR_NOT_ENOUGH_MEMORY;
+    memset(thread, '\0', sizeof (*thread));
+
+    if (ptid || (th_tsel == 0xffff)) {
+        grabLock(&GMutexDosCalls);
+        if (th_tsel == 0xffff) {
+            th_segment = GLoaderState.allocSegment(&th_tsel, 1);
+            if (!th_segment || (th_tsel == 0xffff)) {
+                free(thread);
+                return ERROR_NOT_ENOUGH_MEMORY;
+            }
+            th_tsel = (th_tsel << 3) | 7;
+            char *ptr = (char *)th_segment;
+            LxModule *lxmod = GLoaderState.main_module;
+	    *(ptr++) = 0x60;  /* pusha */
+            *(ptr++) = 0x89;  /* mov edx, eax */
+            *(ptr++) = 0xD0;  /* ...mov edx, eax */
+            *(ptr++) = 0xC1;  /* shr eax,byte 0x10... */
+            *(ptr++) = 0xE8;  /*  ...shr eax,byte 0x10 */
+            *(ptr++) = 0x10;  /*  ...shr eax,byte 0x10 */
+            *(ptr++) = 0x64;  /* fs: */
+            *(ptr++) = 0x89;  /* mov 0xab,esp */
+            *(ptr++) = 0x25;  /*  ...mov 0xab,esp */
+            uint32 esptmp = offsetof(LxTIB, tib_origstack);
+            memcpy(ptr, &esptmp, 4); ptr += 4;
+            *(ptr++) = 0x66;  /* jmp word 0xaaaa:0xbbbb... */
+            *(ptr++) = 0xEA;  /*  ...jmp word 0xaaaa:0xbbbb */
+            const uint16 jmp16offset = ((uint32)ptr - (uint32)th_segment + 4);
+            memcpy(ptr, &jmp16offset, 2); ptr += 2;
+            memcpy(ptr, &th_tsel, 2); ptr += 2;
+            *(ptr++) = 0x8E;  /* mov ax, ss */
+            *(ptr++) = 0xD0;  /* ...mov ax, ss */
+            *(ptr++) = 0x8B;  /* mov dx, sp */
+            *(ptr++) = 0xE2;  /* ...mov dx, sp */
+            *(ptr++) = 0x1E;  /* push ds */
+            *(ptr++) = 0xBA;  /* mov dx,0x3333... */
+            const uint16 ds = lxmod->header.ne.auto_data_segment ? (lxmod->mmaps[lxmod->header.ne.auto_data_segment-1].alias << 3) | 7 : lxmod->esp >> 16;  // data segment
+            memcpy(ptr, &ds, 2); ptr += 2;
+            *(ptr++) = 0x8E;  /* mov dx,ds... */
+            *(ptr++) = 0xDA;  /*  ...mov dx,ds */
+            *(ptr++) = 0x0E;  /* push cs */
+            *(ptr++) = 0x68;  /* push 0xabcd */
+            const uint16 iptmp = ((uint32)ptr - (uint32)th_segment + 5);
+            memcpy(ptr, &iptmp, 2); ptr += 2;
+            *(ptr++) = 0x66;  /* push ecx */
+            *(ptr++) = 0x51;  /* ...push ecx */
+            *(ptr++) = 0xCB;  /* retf */
+            *(ptr++) = 0x1F;  /* pop ds */
+            *(ptr++) = 0x66;  /* jmp dword 0x7788:0x33332222... */
+            *(ptr++) = 0xEA;  /*  ...jmp dword 0x7788:0x33332222 */
+            const uint32 jmp32addr = (uint32) (ptr + 6);
+            memcpy(ptr, &jmp32addr, 4); ptr += 4;
+            memcpy(ptr, &GLoaderState.original_cs, 2); ptr += 2;
+            *(ptr++) = 0x66;  /* mov cx,0xabcd... */
+            *(ptr++) = 0xB9;  /*  ...mov cx,0xabcd */
+            memcpy(ptr, &GLoaderState.original_ss, 2); ptr += 2;
+            *(ptr++) = 0x8E;  /* mov ss,ecx... */
+            *(ptr++) = 0xD1;  /*  ...mov ss,ecx */
+            *(ptr++) = 0x64;  /* fs: */
+            *(ptr++) = 0x8B;  /* mov esp,0xab */
+            *(ptr++) = 0x25;  /*  ...mov esp,0xab */
+            memcpy(ptr, &esptmp, 4); ptr += 4;
+	    *(ptr++) = 0x61;  /* popa */
+            *(ptr++) = 0xC3;  /* ret */
+        }
+        if(ptid) {
+            if (!tid16)
+                tid16 = calloc(10, sizeof(TID)); // 10 tid handles
+            for (i = 0; i < 10; i++)
+            {
+                    if(!tid16[i])
+                    {
+                            tid16[i] = -1;
+                            break;
+                    }
+            }
+            if (i == 10)
+                return ERROR_MAX_THRDS_REACHED;
+        }
+        ungrabLock(&GMutexDosCalls);
+    }
+
+    thread->stacklen = 4096;
+    thread->fn = (PFNTHREAD) pfn;
+    thread->fnarg = pstack;
+    APIRET ret = DosCreateEventSem(NULL, &thread->suspend, 0, 0);
+    if (ret) {
+        free(thread);
+        return ret;
+    }
+
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setstacksize(&attr, thread->stacklen);
+    const int rc = pthread_create(&thread->thread, &attr, os2Thread16Entry, thread);
+    pthread_attr_destroy(&attr);
+
+    if (rc != 0) {
+        tid16[i] = 0;
+        free(thread);
+        return ERROR_MAX_THRDS_REACHED;
+    } // if
+
+    if (ptid) {
+        tid16[i] = (TID) thread;
+        *ptid = i;
+    }
+
+    return NO_ERROR;
+}
+
+APIRET16 Dos16Sleep(ULONG msec)
+{
+    return DosSleep(msec);
+}
+
+APIRET16 Dos16SuspendThread(USHORT tid)
+{
+    if (tid >= 10)
+        return ERROR_INVALID_HANDLE;
+    return DosSuspendThread(tid16[tid]);
+}
+
+APIRET16 Dos16ResumeThread(USHORT tid)
+{
+    if (tid >= 10)
+        return ERROR_INVALID_HANDLE;
+    return DosResumeThread(tid16[tid]);
+}
+
+static void usr1_handler(int sig)
+{
+    TIB2 *tib2;
+    ULONG count;
+    __asm__ (
+        "mov %%fs:%c1, %%eax\n\t"
+        "mov %%eax, %0"
+        : "=m" (tib2)
+        : "i" (offsetof(LxTIB, tib_ptib2))
+        : "eax");
+
+    Thread *th = (Thread *)tib2->tib2_ultid;
+    DosWaitEventSem(th->suspend, -1);
+    DosResetEventSem(th->suspend, &count);
+}
 
 LX_NATIVE_CONSTRUCTOR(doscalls)
 {
@@ -3375,6 +3579,16 @@ LX_NATIVE_CONSTRUCTOR(doscalls)
         fprintf(stderr, "pthread_mutex_init failed!\n");
         abort();
     } // if
+
+    struct sigaction sa;
+    sigfillset(&sa.sa_mask);
+    sa.sa_flags = SA_RESTART | SA_ONSTACK;
+    sa.sa_handler = usr1_handler;
+    if (sigaction(SIGUSR1, &sa, NULL) == -1) {
+        pthread_mutex_destroy(&GMutexDosCalls);
+        fprintf(stderr, "sigaction failed\n");
+        abort();
+    }
 
     MaxHFiles = 20;  // seems to be OS/2's default.
     HFiles = (HFileInfo *) malloc(sizeof (HFileInfo) * MaxHFiles);
@@ -3444,6 +3658,7 @@ LX_NATIVE_CONSTRUCTOR(doscalls)
     ginfo->csgPMMax = 99;
     linfo->pidCurrent = GLoaderState.pib.pib_ulpid;
     linfo->pidParent = GLoaderState.pib.pib_ulppid;
+    linfo->tidCurrent = 1; // set_thread_area??
 }
 
 LX_NATIVE_DESTRUCTOR(doscalls)

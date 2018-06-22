@@ -10,6 +10,8 @@
 #define _INCL_OS2NATIVE16_H_
 
 #include "os2native.h"
+#include "doscalls.h"
+#include <stddef.h>
 
 // !!! FIXME: _lots_ of macro salsa in here.
 
@@ -187,10 +189,10 @@ RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling
     *(ptr++) = 0xD1;  /*  ...mov ss,ecx */ \
     /* Lx modules will hopfully have big enough stacks */ \
     if (!GLoaderState.main_module->is_lx) { \
-        *(ptr++) = 0x36;  /* ss:  ss == ds always?? */ \
-        *(ptr++) = 0x8B;  /* mov esp,0xabcdefgh */ \
-        *(ptr++) = 0x25;  /*  ...mov esp,0xabcdefgh */ \
-        uint32_t esptmp = (uint32_t)&GLoaderState.original_esp; \
+        *(ptr++) = 0x64;  /* fs: */ \
+        *(ptr++) = 0x8B;  /* mov esp,0xab */ \
+        *(ptr++) = 0x25;  /*  ...mov esp,0xab */ \
+        uint32_t esptmp = offsetof(LxTIB, tib_origstack); \
         memcpy(ptr, &esptmp, 4); ptr += 4; \
     } else { \
         *(ptr++) = 0x89;  /* mov esp,eax... */ \

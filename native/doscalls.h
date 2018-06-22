@@ -71,6 +71,7 @@ typedef struct TIB
     PTIB2 tib_ptib2;
     ULONG tib_version;
     ULONG tib_ordinal;
+    PVOID tib_origstack;
 } TIB, *PTIB;
 #pragma pack(pop)
 
@@ -416,10 +417,10 @@ typedef struct
 
 typedef struct
 {
-    PID pidCurrent;
-    PID pidParent;
+    USHORT pidCurrent;
+    USHORT pidParent;
     USHORT prtyCurrent;
-    TID tidCurrent;
+    USHORT tidCurrent;
     USHORT sgCurrent;
     UCHAR rfProcStatus;
     UCHAR dummy1;
@@ -544,6 +545,10 @@ OS2EXPORT APIRET16 OS2API16 Dos16Read(USHORT hFile, PVOID pBuffer, USHORT cbRead
 OS2EXPORT APIRET16 OS2API16 Dos16ExecPgm(PCHAR pObjname, SHORT cbObjname, USHORT execFlag, PSZ pArg, PSZ pEnv, PRESULTCODES16 pRes, PSZ pName) OS2APIINFO(144);
 OS2EXPORT APIRET16 OS2API16 Dos16CWait(USHORT action, USHORT option, PRESULTCODES16 pres, PUSHORT ppid, USHORT pid) OS2APIINFO(2);
 OS2EXPORT APIRET16 OS2API16 Dos16ChgFilePtr(USHORT handle, LONG distance, USHORT whence, PULONG newoffset) OS2APIINFO(58);
+OS2EXPORT APIRET16 OS2API16 Dos16CreateThread(ULONG pfn, PUSHORT ptid, ULONG pstack) OS2APIINFO(145);
+OS2EXPORT APIRET16 OS2API16 Dos16Sleep(ULONG msec) OS2APIINFO(32);
+OS2EXPORT APIRET16 OS2API16 Dos16SuspendThread(USHORT tid) OS2APIINFO(27);
+OS2EXPORT APIRET16 OS2API16 Dos16ResumeThread(USHORT tid) OS2APIINFO(26);
 
 // !!! FIXME: these should probably get sorted alphabetically and/or grouped
 // !!! FIXME:  into areas of functionality, but for now, I'm just listing them
@@ -618,6 +623,8 @@ OS2EXPORT APIRET OS2API DosCloseMutexSem(HMTX hmtx) OS2APIINFO(333);
 OS2EXPORT APIRET OS2API DosSetProcessCp(ULONG cp) OS2APIINFO(289);
 OS2EXPORT APIRET OS2API DosQueryFSAttach(PSZ pszDeviceName, ULONG ulOrdinal, ULONG ulFSAInfoLevel, PFSQBUFFER2 pfsqb, PULONG pcbBuffLength) OS2APIINFO(277);
 OS2EXPORT APIRET OS2API DosSetFileSize(HFILE hFile, ULONG cbSize) OS2APIINFO(272);
+OS2EXPORT APIRET OS2API DosSuspendThread(TID tid) OS2APIINFO(238);
+OS2EXPORT APIRET OS2API DosResumeThread(TID tid) OS2APIINFO(237);
 
 #ifdef __cplusplus
 }

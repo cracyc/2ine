@@ -251,6 +251,7 @@ typedef struct LxTIB
     LxTIB2 *tib_ptib2;
     uint32 tib_version;
     uint32 tib_ordinal;
+    void *tib_origstack;
 } LxTIB;
 
 typedef struct LxPIB
@@ -295,7 +296,6 @@ typedef struct LxLoaderState
     uint16 original_ds;
     uint16 original_es;
     uint16 original_ss;
-    uint32 original_esp;
     uint32 *ldt; //[LX_MAX_LDT_SLOTS];
     char *libpath;
     uint32 libpathlen;
