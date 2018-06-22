@@ -21,6 +21,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <ucontext.h>
+#include <stddef.h>
 
 // 16-bit selector kernel nonsense...
 #include <sys/syscall.h>
@@ -852,10 +853,10 @@ static void *generateMissingTrampoline16(const char *_module, const char *_entry
 
     /* Lx modules will hopfully have big enough stacks */
     if (!GLoaderState.main_module->is_lx) {
-        *(ptr++) = 0x36;  /* ss:  ss == ds always?? */
-        *(ptr++) = 0x8B;  /* mov esp,0xabcdefgh */
-        *(ptr++) = 0x25;  /*  ...mov esp,0xabcdefgh */
-        uint32_t esptmp = (uint32_t)&GLoaderState.original_esp;
+        *(ptr++) = 0x64;  /* fs: */
+        *(ptr++) = 0x8B;  /* mov esp,0xab */
+        *(ptr++) = 0x25;  /*  ...mov esp,0xab */
+        uint32_t esptmp = offsetof(LxTIB, tib_origstack);
         memcpy(ptr, &esptmp, 4); ptr += 4;
     } else {
         *(ptr++) = 0x89;  /* mov esp,eax... */
@@ -1062,10 +1063,10 @@ INT 0x3           ; if it returns here, crash and burn.
     *(ptr++) = 0x03;  /*  ...int 0x3 */
 
     __asm__ __volatile__(
-        "mov %%esp,%0\n\t"
+        "mov %%esp,%%fs:%c1\n\t"
         "jmp *%%eax\n\t"
-            : "=m" (GLoaderState.original_esp)
-            : "a" (segment)
+            : /* no outputs */
+            : "a" (segment), "i" (offsetof(LxTIB, tib_origstack))
             : "memory");
 
     __builtin_unreachable();
