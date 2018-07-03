@@ -9,7 +9,153 @@
 /* This is glue code for OS/2 binaries. Native binaries don't need this. */
 #if LX_LEGACY
 
-LX_NATIVE_MODULE_INIT()
+static BOOL bridge16to32_Win16RegisterClass(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, cbWindowData);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, flStyle);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, pfnWndProc);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszClassName);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16RegisterClass(hab, pszClassName, pfnWndProc, flStyle, cbWindowData);
+}
+
+static HWND bridge16to32_Win16CreateWindow(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, pPresParams);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, pCtlData);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, id);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndInsertBehind);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndOwner);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cy);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cx);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, y);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, x);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, flStyle);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszName);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszClass);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndParent);
+    return Win16CreateWindow(hwndParent, pszClass, pszName, flStyle, x, y, cx, cy, hwndOwner, hwndInsertBehind, id, pCtlData, pPresParams);
+}
+
+static BOOL bridge16to32_Win16DestroyWindow(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwnd);
+    return Win16DestroyWindow(hwnd);
+}
+
+static HPS bridge16to32_Win16BeginPaint(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PRECTL, prclPaint);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HPS, hps);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwnd);
+    return Win16BeginPaint(hwnd, hps, prclPaint);
+}
+
+static BOOL bridge16to32_Win16EndPaint(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HPS, hps);
+    return Win16EndPaint(hps);
+}
+
+static HMQ bridge16to32_Win16CreateMsgQueue(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cmsg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16CreateMsgQueue(hab, cmsg);
+}
+
+static BOOL bridge16to32_Win16DestroyMsgQueue(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HMQ, hmq);
+    return Win16DestroyMsgQueue(hmq);
+}
+
+static BOOL bridge16to32_Win16GetMsg(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, msgFilterLast);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, msgFilterFirst);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndFilter);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PQMSG16, pqmsg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16GetMsg(hab, pqmsg, hwndFilter, msgFilterFirst, msgFilterLast);
+}
+
+static MRESULT bridge16to32_Win16DispatchMsg(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PQMSG16, pqmsg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16DispatchMsg(hab, pqmsg);
+}
+
+static BOOL bridge16to32_Win16FillRect(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(LONG, lColor);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PRECTL, prcl);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HPS, hps);
+    return Win16FillRect(hps, prcl, lColor);
+}
+
+static MRESULT bridge16to32_Win16DefWindowProc(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(MPARAM, mp2);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(MPARAM, mp1);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, msg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwnd);
+    return Win16DefWindowProc(hwnd, msg, mp1, mp2);
+}
+
+static HAB bridge16to32_Win16Initialize(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, flOptions);
+    return Win16Initialize(flOptions);
+}
+
+static BOOL bridge16to32_Win16Terminate(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16Terminate(hab);
+}
+
+LX_NATIVE_MODULE_16BIT_SUPPORT()
+    LX_NATIVE_MODULE_16BIT_API(Win16RegisterClass)
+    LX_NATIVE_MODULE_16BIT_API(Win16CreateWindow)
+    LX_NATIVE_MODULE_16BIT_API(Win16DestroyWindow)
+    LX_NATIVE_MODULE_16BIT_API(Win16BeginPaint)
+    LX_NATIVE_MODULE_16BIT_API(Win16EndPaint)
+    LX_NATIVE_MODULE_16BIT_API(Win16CreateMsgQueue)
+    LX_NATIVE_MODULE_16BIT_API(Win16DestroyMsgQueue)
+    LX_NATIVE_MODULE_16BIT_API(Win16GetMsg)
+    LX_NATIVE_MODULE_16BIT_API(Win16DispatchMsg)
+    LX_NATIVE_MODULE_16BIT_API(Win16FillRect)
+    LX_NATIVE_MODULE_16BIT_API(Win16DefWindowProc)
+    LX_NATIVE_MODULE_16BIT_API(Win16Initialize)
+    LX_NATIVE_MODULE_16BIT_API(Win16Terminate)
+LX_NATIVE_MODULE_16BIT_SUPPORT_END()
+
+LX_NATIVE_MODULE_DEINIT({
+    LX_NATIVE_MODULE_DEINIT_16BIT_SUPPORT();
+})
+
+static int init16_pmwin(void) {
+    LX_NATIVE_MODULE_INIT_16BIT_SUPPORT()
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16RegisterClass, 18)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16CreateWindow, 42)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16DestroyWindow, 4)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16BeginPaint, 12)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16EndPaint, 4)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16CreateMsgQueue, 6)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16DestroyMsgQueue, 4)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16GetMsg, 16)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16DispatchMsg, 8)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16FillRect, 12)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16DefWindowProc, 14)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16Initialize, 2)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16Terminate, 4)
+    LX_NATIVE_MODULE_INIT_16BIT_SUPPORT_END()
+    return 1;
+}
+
+LX_NATIVE_MODULE_INIT({ if (!init16_pmwin()) return 0; })
+    LX_NATIVE_EXPORT16(Win16RegisterClass, 3),
+    LX_NATIVE_EXPORT16(Win16CreateWindow, 6),
+    LX_NATIVE_EXPORT16(Win16DestroyWindow, 7),
+    LX_NATIVE_EXPORT16(Win16BeginPaint, 45),
+    LX_NATIVE_EXPORT16(Win16EndPaint, 46),
+    LX_NATIVE_EXPORT16(Win16CreateMsgQueue, 58),
+    LX_NATIVE_EXPORT16(Win16DestroyMsgQueue, 59),
+    LX_NATIVE_EXPORT16(Win16GetMsg, 65),
+    LX_NATIVE_EXPORT16(Win16DispatchMsg, 68),
+    LX_NATIVE_EXPORT16(Win16FillRect, 173),
+    LX_NATIVE_EXPORT16(Win16DefWindowProc, 178),
+    LX_NATIVE_EXPORT16(Win16Initialize, 246),
+    LX_NATIVE_EXPORT16(Win16Terminate, 247),
     LX_NATIVE_EXPORT(WinBeginPaint, 703),
     LX_NATIVE_EXPORT(WinCreateMsgQueue, 716),
     LX_NATIVE_EXPORT(WinDestroyMsgQueue, 726),

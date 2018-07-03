@@ -11,6 +11,11 @@ my %typesizes = (
     'USHORT' => 2,
     'HVIO' => 2,
     'HKBD' => 2,
+    'HAB' => 4,
+    'HMQ' => 4,
+    'HWND' => 4,
+    'HPS' => 4,
+    'MPARAM' => 4,
 );
 
 sub typesize {
