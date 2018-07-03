@@ -1,7 +1,14 @@
 #define INCL_WININPUT 1
 #include <os2.h>
 
-static MRESULT APIENTRY winproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+#ifdef M_I86
+#define UINT USHORT
+#define NULLHANDLE NULL
+#else
+#define UINT ULONG
+#endif
+
+static MRESULT APIENTRY winproc(HWND hwnd, UINT msg, MPARAM mp1, MPARAM mp2)
 {
     switch (msg) {
         case WM_PAINT: {
@@ -12,7 +19,7 @@ static MRESULT APIENTRY winproc(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             return 0;
         }
 
-        case WM_BUTTON1CLICK: {  // kill the app when the window is clicked on.
+        case WM_BUTTON1DOWN: {  // kill the app when the window is clicked on.
             WinPostMsg(hwnd, WM_QUIT, 0, 0);
             return 0;
         }

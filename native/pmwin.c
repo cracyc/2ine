@@ -6,7 +6,7 @@
  *  This file written by Ryan C. Gordon.
  */
 
-#include "os2native.h"
+#include "os2native16.h"
 #include "pmwin.h"
 #include "SDL.h"
 
@@ -1589,7 +1589,8 @@ static void calcHeavyweightRect(const Window *win, SDL_Rect* rect)
     rect->y = (win->h - y) - rect->h;
 } // calcHeavyweightRect
 
-BOOL WinFillRect(HPS hps, PRECTL prcl, LONG lColor)
+// this may use sse2 in sdl and os/2 programs won't align the stack
+__attribute__((force_align_arg_pointer)) BOOL WinFillRect(HPS hps, PRECTL prcl, LONG lColor)
 {
     TRACE_NATIVE("WinFillRect(%u, %p, %d)", (unsigned int) hps, prcl, (int) lColor);
     AnchorBlock *anchor = getAnchorBlockNoHAB();
@@ -1623,6 +1624,40 @@ BOOL WinFillRect(HPS hps, PRECTL prcl, LONG lColor)
     SDL_RenderSetClipRect(renderer, NULL);
     return TRUE;
 } // WinFillRect
+
+HAB Win16Initialize(USHORT flOptions)
+{
+    return WinInitialize(flOptions);
+}
+
+HMQ Win16CreateMsgQueue(HAB hab, SHORT cmsg)
+{
+    return WinCreateMsgQueue(hab, cmsg);
+}
+
+BOOL Win16RegisterClass(HAB hab, PSZ pszClassName, ULONG pfnWndProc, ULONG flStyle, USHORT cbWindowData)
+{
+    return WinRegisterClass(hab, pszClassName, (PFNWP)pfnWndProc, flStyle, cbWindowData);
+}
+
+HWND Win16CreateWindow(HWND hwndParent, PSZ pszClass, PSZ pszName, ULONG flStyle, SHORT x, SHORT y, SHORT cx, SHORT cy, HWND hwndOwner, HWND hwndInsertBehind, USHORT id, PVOID pCtlData, PVOID pPresParams)
+{
+    return WinCreateWindow(hwndParent, pszClass, pszName, flStyle, x, y, cx, cy, hwndOwner, hwndInsertBehind, id, pCtlData, pPresParams);
+}
+
+BOOL Win16GetMsg(HAB hab, PQMSG16 pqmsg, HWND hwndFilter, USHORT msgFilterFirst, USHORT msgFilterLast)
+{
+    QMSG qmsg;
+    BOOL ret = WinGetMsg(hab, &qmsg, hwndFilter, msgFilterFirst, msgFilterLast);
+    pqmsg->hwnd = qmsg.hwnd;
+    pqmsg->msg = qmsg.msg;
+    pqmsg->mp1 = qmsg.mp1; // FIXME: these may be pointers depending on the message
+    pqmsg->mp2 = qmsg.mp2;
+    pqmsg->time = qmsg.time;
+    pqmsg->ptl.x = qmsg.ptl.x;
+    pqmsg->ptl.y = qmsg.ptl.y;
+    return ret;
+}
 
 // end of pmwin.c ...
 

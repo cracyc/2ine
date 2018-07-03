@@ -9,7 +9,81 @@
 /* This is glue code for OS/2 binaries. Native binaries don't need this. */
 #if LX_LEGACY
 
-LX_NATIVE_MODULE_INIT()
+static BOOL bridge16to32_Win16RegisterClass(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, cbWindowData);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, flStyle);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, pfnWndProc);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszClassName);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16RegisterClass(hab, pszClassName, pfnWndProc, flStyle, cbWindowData);
+}
+
+static HWND bridge16to32_Win16CreateWindow(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, pPresParams);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, pCtlData);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, id);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndInsertBehind);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndOwner);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cy);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cx);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, y);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, x);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(ULONG, flStyle);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszName);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSZ, pszClass);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndParent);
+    return Win16CreateWindow(hwndParent, pszClass, pszName, flStyle, x, y, cx, cy, hwndOwner, hwndInsertBehind, id, pCtlData, pPresParams);
+}
+
+static HMQ bridge16to32_Win16CreateMsgQueue(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, cmsg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16CreateMsgQueue(hab, cmsg);
+}
+
+static BOOL bridge16to32_Win16GetMsg(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, msgFilterLast);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, msgFilterFirst);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HWND, hwndFilter);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PQMSG16, pqmsg);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(HAB, hab);
+    return Win16GetMsg(hab, pqmsg, hwndFilter, msgFilterFirst, msgFilterLast);
+}
+
+static HAB bridge16to32_Win16Initialize(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, flOptions);
+    return Win16Initialize(flOptions);
+}
+
+LX_NATIVE_MODULE_16BIT_SUPPORT()
+    LX_NATIVE_MODULE_16BIT_API(Win16RegisterClass)
+    LX_NATIVE_MODULE_16BIT_API(Win16CreateWindow)
+    LX_NATIVE_MODULE_16BIT_API(Win16CreateMsgQueue)
+    LX_NATIVE_MODULE_16BIT_API(Win16GetMsg)
+    LX_NATIVE_MODULE_16BIT_API(Win16Initialize)
+LX_NATIVE_MODULE_16BIT_SUPPORT_END()
+
+LX_NATIVE_MODULE_DEINIT({
+    LX_NATIVE_MODULE_DEINIT_16BIT_SUPPORT();
+})
+
+static int init16_pmwin(void) {
+    LX_NATIVE_MODULE_INIT_16BIT_SUPPORT()
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16RegisterClass, 18)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16CreateWindow, 42)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16CreateMsgQueue, 6)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16GetMsg, 16)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Win16Initialize, 2)
+    LX_NATIVE_MODULE_INIT_16BIT_SUPPORT_END()
+    return 1;
+}
+
+LX_NATIVE_MODULE_INIT({ if (!init16_pmwin()) return 0; })
+    LX_NATIVE_EXPORT16(Win16RegisterClass, 3),
+    LX_NATIVE_EXPORT16(Win16CreateWindow, 6),
+    LX_NATIVE_EXPORT16(Win16CreateMsgQueue, 58),
+    LX_NATIVE_EXPORT16(Win16GetMsg, 65),
+    LX_NATIVE_EXPORT16(Win16Initialize, 246),
     LX_NATIVE_EXPORT(WinBeginPaint, 703),
     LX_NATIVE_EXPORT(WinCreateMsgQueue, 716),
     LX_NATIVE_EXPORT(WinDestroyMsgQueue, 726),

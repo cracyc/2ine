@@ -47,6 +47,17 @@ typedef struct
     ULONG   reserved;
 } QMSG, *PQMSG;
 
+typedef struct
+{
+    HWND   hwnd;
+    USHORT msg;
+    MPARAM mp1;
+    MPARAM mp2;
+    ULONG  time;
+    POINTL ptl;
+} QMSG16, *PQMSG16;
+
+
 typedef MRESULT (OS2API FNWP)(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 typedef FNWP *PFNWP;
 
@@ -894,6 +905,12 @@ OS2EXPORT BOOL OS2API WinPostQueueMsg(HMQ hmq, ULONG msg, MPARAM mp1, MPARAM mp2
 OS2EXPORT HPS OS2API WinBeginPaint(HWND hwnd, HPS hps, PRECTL prclPaint) OS2APIINFO(703);
 OS2EXPORT BOOL OS2API WinEndPaint(HPS hps) OS2APIINFO(738);
 OS2EXPORT BOOL OS2API WinFillRect(HPS hps, PRECTL prcl, LONG lColor) OS2APIINFO(743);
+
+OS2EXPORT HAB OS2API16 Win16Initialize(USHORT flOptions) OS2APIINFO(246);
+OS2EXPORT HMQ OS2API16 Win16CreateMsgQueue(HAB hab, SHORT cmsg) OS2APIINFO(58);
+OS2EXPORT BOOL OS2API16 Win16RegisterClass(HAB hab, PSZ pszClassName, ULONG pfnWndProc, ULONG flStyle, USHORT cbWindowData) OS2APIINFO(3);
+OS2EXPORT HWND OS2API16 Win16CreateWindow(HWND hwndParent, PSZ pszClass, PSZ pszName, ULONG flStyle, SHORT x, SHORT y, SHORT cx, SHORT cy, HWND hwndOwner, HWND hwndInsertBehind, USHORT id, PVOID pCtlData, PVOID pPresParams) OS2APIINFO(6);
+OS2EXPORT BOOL OS2API16 Win16GetMsg(HAB hab, PQMSG16 pqmsg, HWND hwndFilter, USHORT msgFilterFirst, USHORT msgFilterLast) OS2APIINFO(65);
 
 #ifdef __cplusplus
 }
