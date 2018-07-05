@@ -964,6 +964,10 @@ static __attribute__((noreturn)) void runNeModule(LxModule *lxmod)
     //fprintf(stderr, "jumping into NE land for exe '%s'...! cs:ip=%X:%X (%p) ss:sp=%X:%X (%p)\n", lxmod->name, (uint) (lxmod->eip >> 16), (uint) (lxmod->eip & 0xFFFF), lxConvert1616to32(lxmod->eip), (uint) (lxmod->esp >> 16), (uint) (lxmod->esp & 0xFFFF), lxConvert1616to32(lxmod->esp)); fflush(stderr);
 
     GLoaderState.running = 1;
+    // create a 64K tileable stack for library functions
+    uint16 selector = 0xFFFF;
+    void *bigstack = lxAllocSegment(&selector, 0);
+    assert(bigstack != NULL);
 
     // According to https://github.com/open-watcom/open-watcom-v2/blob/master/bld/clib/startup/c/maino16.c ,
     //  The stack at startup should have, pushed in this order: cmdline offset, env segment, far* to top of stack, far* to bottom of stack.
@@ -984,7 +988,6 @@ static __attribute__((noreturn)) void runNeModule(LxModule *lxmod)
     stack -= 2; *((uint16 *) stack) = (lxmod->esp & 0xFFFF) - stacksize;  // bottom of stack
     stack -= 2; *((uint16 *) stack) = ss;  // bottom of stack
 
-    uint16 selector = 0xFFFF;
     void *segment = lxAllocSegment(&selector, 1);
     assert(segment != NULL);
     assert(selector != 0xFFFF);
@@ -1063,10 +1066,10 @@ INT 0x3           ; if it returns here, crash and burn.
     *(ptr++) = 0x03;  /*  ...int 0x3 */
 
     __asm__ __volatile__(
-        "mov %%esp,%%fs:%c1\n\t"
+        "mov %0,%%fs:%c2\n\t"
         "jmp *%%eax\n\t"
             : /* no outputs */
-            : "a" (segment), "i" (offsetof(LxTIB, tib_origstack))
+            : "r" (bigstack), "a" (segment), "i" (offsetof(LxTIB, tib_origstack))
             : "memory");
 
     __builtin_unreachable();
