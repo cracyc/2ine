@@ -1738,7 +1738,7 @@ static MRESULT call_window_proc16(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             *(ptr++) = 0x0F; /* ...lss sp,[ebp-4] */
             *(ptr++) = 0xB2; /* ...lss sp,[ebp-4] */
             *(ptr++) = 0x65; /* ...lss sp,[ebp-4] */
-            *(ptr++) = 0xfc; /* ...lss sp,[ebp-4] */
+            *(ptr++) = 0xFC; /* ...lss sp,[ebp-4] */
         } else {
             *(ptr++) = 0x8B;  /* mov ebp,esp... */
             *(ptr++) = 0xEC;  /*  ...mov ebp,esp */
@@ -1747,6 +1747,7 @@ static MRESULT call_window_proc16(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
             *(ptr++) = 0x0D;  /* ...shr ebp,13 */
             *(ptr++) = 0x66;  /* or bp, 7 */
             *(ptr++) = 0x80;  /* ...or bp, 7 */
+            *(ptr++) = 0xCD;  /* ...or bp, 7 */
             *(ptr++) = 0x07;  /* ...or bp, 7 */
             *(ptr++) = 0x00;  /* ...or bp, 7 */
             *(ptr++) = 0x8E;  /* mov ss,bp */
