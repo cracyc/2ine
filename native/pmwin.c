@@ -45,6 +45,7 @@ typedef struct WindowClass
 {
     char *name;
     PFNWP window_proc;
+    ULONG window_proc16;
     ULONG style;
     ULONG data_len;
     struct WindowClass *next;
@@ -61,6 +62,7 @@ typedef struct
 typedef struct Window
 {
     PFNWP window_proc;
+    ULONG window_proc16;
     HeavyWeightWindow heavy;
     struct Window *parent;
     struct Window *children;
@@ -995,6 +997,7 @@ BOOL WinRegisterClass(HAB hab, PSZ pszClassName, PFNWP pfnWndProc, ULONG flStyle
     }
 
     winclass->window_proc = pfnWndProc;
+    winclass->window_proc16 = 0;
     winclass->style = flStyle;
     winclass->data_len = cbWindowData;
 
@@ -1196,6 +1199,7 @@ HWND WinCreateWindow(HWND hwndParent, PSZ pszClass, PSZ pszName, ULONG flStyle, 
     win->text = text;
     win->data_len = winclass->data_len;
     win->window_proc = winclass->window_proc;
+    win->window_proc16 = winclass->window_proc16;
     win->class_style = winclass->style;
     win->style = flStyle;
     win->id = id;
@@ -1635,14 +1639,155 @@ HMQ Win16CreateMsgQueue(HAB hab, SHORT cmsg)
     return WinCreateMsgQueue(hab, cmsg);
 }
 
+static MRESULT call_window_proc16(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2)
+{
+    static uint16 wp_tsel = 0xffff;
+    static void *wp_segment = 0;
+
+    AnchorBlock *anchor = getAnchorBlockNoHAB();
+    if (!anchor)
+        return (MRESULT) 0;
+
+    Window *win = getWindowFromHWND(anchor, hwnd);
+    if (!win || !win->window_proc16)
+        return (MRESULT) 0;
+
+    switch (msg) {
+         case WM_ADJUSTWINDOWPOS: {
+            SWP16 *swp16 = (SWP16 *)mp1;
+            SWP *swp = (SWP *)mp1;
+            swp16->fs = swp->fl;
+            swp16->cy = swp->cy;
+            swp16->cx = swp->cx;
+            swp16->y = swp->y;
+            swp16->x = swp->x;
+            swp16->hwndInsertBehind = swp->hwndInsertBehind;
+            swp16->hwnd = swp->hwnd;
+            mp1 = (MPARAM)GLoaderState.convert32to1616(mp1);
+            break;
+        }
+    }
+
+    if (wp_tsel == 0xffff) {
+        // lock here?
+        wp_segment = GLoaderState.allocSegment(&wp_tsel, 1);
+        if (!wp_segment || (wp_tsel == 0xffff))
+            return (MRESULT) 0;
+
+        wp_tsel = (wp_tsel << 3) | 7;
+        char *ptr = (char *)wp_segment;
+        LxModule *lxmod = GLoaderState.main_module;
+        *(ptr++) = 0x64;  /* fs: */
+        *(ptr++) = 0x89;  /* mov 0xab,esp */
+        *(ptr++) = 0x25;  /*  ...mov 0xab,esp */
+        uint32_t esptmp = offsetof(LxTIB, tib_origstack);
+        memcpy(ptr, &esptmp, 4); ptr += 4;
+        if (!GLoaderState.main_module->is_lx) {
+            // this depends on the caller stack being the first pushed in the trampoline
+            *(ptr++) = 0x66; /* lss sp,[ebp-4] */
+            *(ptr++) = 0x0F; /* ...lss sp,[ebp-4] */
+            *(ptr++) = 0xB2; /* ...lss sp,[ebp-4] */
+            *(ptr++) = 0x65; /* ...lss sp,[ebp-4] */
+            *(ptr++) = 0xfc; /* ...lss sp,[ebp-4] */
+        } else {
+            *(ptr++) = 0x8B;  /* mov ebp,esp... */
+            *(ptr++) = 0xEC;  /*  ...mov ebp,esp */
+            *(ptr++) = 0xC1;  /* shr ebp,13 */
+            *(ptr++) = 0xED;  /* ...shr ebp,13 */
+            *(ptr++) = 0x0D;  /* ...shr ebp,13 */
+            *(ptr++) = 0x66;  /* or bp, 7 */
+            *(ptr++) = 0x80;  /* ...or bp, 7 */
+            *(ptr++) = 0x07;  /* ...or bp, 7 */
+            *(ptr++) = 0x00;  /* ...or bp, 7 */
+            *(ptr++) = 0x8E;  /* mov ss,bp */
+            *(ptr++) = 0xD5;  /* ...mov ss,bp */
+            *(ptr++) = 0x90;  /* nop */
+        }
+        *(ptr++) = 0x53; /* push ebx */
+        *(ptr++) = 0x66; /* push cx */
+        *(ptr++) = 0x51; /* ...push cx */
+        *(ptr++) = 0x52; /* push edx */
+        *(ptr++) = 0x56; /* push esi */
+        *(ptr++) = 0x66;  /* jmp word 0xaaaa:0xbbbb... */
+        *(ptr++) = 0xEA;  /*  ...jmp word 0xaaaa:0xbbbb */
+        const uint16 jmp16offset = ((uint32)ptr - (uint32)wp_segment + 4);
+        memcpy(ptr, &jmp16offset, 2); ptr += 2;
+        memcpy(ptr, &wp_tsel, 2); ptr += 2;
+        *(ptr++) = 0xBA;  /* mov dx,0x3333... */
+        const uint16 ds = lxmod->header.ne.auto_data_segment ? (lxmod->mmaps[lxmod->header.ne.auto_data_segment-1].alias << 3) | 7 : lxmod->esp >> 16;  // data segment
+        memcpy(ptr, &ds, 2); ptr += 2;
+        *(ptr++) = 0x8E;  /* mov dx,ds... */
+        *(ptr++) = 0xDA;  /*  ...mov dx,ds */
+        *(ptr++) = 0x0E;  /* push cs */
+        *(ptr++) = 0x68;  /* push 0xabcd */
+        const uint16 iptmp = ((uint32)ptr - (uint32)wp_segment + 5);
+        memcpy(ptr, &iptmp, 2); ptr += 2;
+        *(ptr++) = 0x66;  /* push edi */
+        *(ptr++) = 0x57;  /* ...push edi */
+        *(ptr++) = 0xCB;  /* retf */
+        *(ptr++) = 0x66;  /* jmp dword 0x7788:0x33332222... */
+        *(ptr++) = 0xEA;  /*  ...jmp dword 0x7788:0x33332222 */
+        const uint32 jmp32addr = (uint32) (ptr + 6);
+        memcpy(ptr, &jmp32addr, 4); ptr += 4;
+        memcpy(ptr, &GLoaderState.original_cs, 2); ptr += 2;
+        *(ptr++) = 0x66;  /* mov cx,0xabcd... */
+        *(ptr++) = 0xB9;  /*  ...mov cx,0xabcd */
+        memcpy(ptr, &GLoaderState.original_ds, 2); ptr += 2;
+        *(ptr++) = 0x8E;  /* mov ds,ecx... */
+        *(ptr++) = 0xD9;  /*  ...mov ds,ecx */
+        *(ptr++) = 0x66;  /* mov cx,0xabcd... */
+        *(ptr++) = 0xB9;  /*  ...mov cx,0xabcd */
+        memcpy(ptr, &GLoaderState.original_ss, 2); ptr += 2;
+        *(ptr++) = 0x8E;  /* mov ss,ecx... */
+        *(ptr++) = 0xD1;  /*  ...mov ss,ecx */
+        *(ptr++) = 0x64;  /* fs: */
+        *(ptr++) = 0x8B;  /* mov esp,0xab */
+        *(ptr++) = 0x25;  /*  ...mov esp,0xab */
+        memcpy(ptr, &esptmp, 4); ptr += 4;
+        *(ptr++) = 0xC3;  /* ret */
+    }
+
+    uint32 stack = 0;
+    uint16 low, high;
+    __asm__ (
+        "movl %%fs:%c9, %%eax \n\t"
+        "movl %%eax, %0 \n\t"
+        "movl %3, %%eax \n\t"
+        "movl %4, %%ebx \n\t"
+        "movl %5, %%ecx \n\t"
+        "movl %6, %%edx \n\t"
+        "movl %7, %%esi \n\t"
+        "movl %8, %%edi \n\t"
+        "pushl %%ebp \n\t"
+        "movl %%fs:%c9, %%ebp \n\t"
+        "call *%%eax \n\t"
+        "popl %%ebp \n\t"
+        "movw %%ax, %1 \n\t"
+        "movw %%dx, %2 \n\t"
+        "movl %0, %%eax \n\t"
+        "movl %%eax, %%fs:%c9 \n\t"
+        : "+g" (stack), "=g" (low), "=g" (high)
+        : "g" (wp_segment), "g" (hwnd), "g" (msg), "g" (mp1), "g" (mp2), "g" (win->window_proc16), "i" (offsetof(LxTIB, tib_origstack))
+        : "memory", "eax", "ebx", "ecx", "edx", "esi", "edi" );
+    return (MRESULT)(low | (high << 16));
+}
+
 BOOL Win16RegisterClass(HAB hab, PSZ pszClassName, ULONG pfnWndProc, ULONG flStyle, USHORT cbWindowData)
 {
-    return WinRegisterClass(hab, pszClassName, (PFNWP)pfnWndProc, flStyle, cbWindowData);
+    if (WinRegisterClass(hab, pszClassName, call_window_proc16, flStyle, cbWindowData) == FALSE)
+        return FALSE;
+
+    AnchorBlock *anchor = getAnchorBlock(hab);
+    WindowClass *winclass = findRegisteredClass(anchor, pszClassName);
+    winclass->window_proc16 = pfnWndProc;
+    return TRUE;
 }
 
 HWND Win16CreateWindow(HWND hwndParent, PSZ pszClass, PSZ pszName, ULONG flStyle, SHORT x, SHORT y, SHORT cx, SHORT cy, HWND hwndOwner, HWND hwndInsertBehind, USHORT id, PVOID pCtlData, PVOID pPresParams)
 {
-    return WinCreateWindow(hwndParent, pszClass, pszName, flStyle, x, y, cx, cy, hwndOwner, hwndInsertBehind, id, pCtlData, pPresParams);
+    HWND hwnd = WinCreateWindow(hwndParent, pszClass, pszName, flStyle, x, y, cx, cy, hwndOwner, hwndInsertBehind, id, pCtlData, pPresParams);
+
+    return hwnd;
 }
 
 BOOL Win16GetMsg(HAB hab, PQMSG16 pqmsg, HWND hwndFilter, USHORT msgFilterFirst, USHORT msgFilterLast)
@@ -1651,12 +1796,89 @@ BOOL Win16GetMsg(HAB hab, PQMSG16 pqmsg, HWND hwndFilter, USHORT msgFilterFirst,
     BOOL ret = WinGetMsg(hab, &qmsg, hwndFilter, msgFilterFirst, msgFilterLast);
     pqmsg->hwnd = qmsg.hwnd;
     pqmsg->msg = qmsg.msg;
-    pqmsg->mp1 = qmsg.mp1; // FIXME: these may be pointers depending on the message
+    switch (qmsg.msg) {
+        case WM_ADJUSTWINDOWPOS:
+            pqmsg->mp1 = (MPARAM)GLoaderState.convert32to1616(qmsg.mp1);
+            break;
+        default:
+            pqmsg->mp1 = qmsg.mp1;
+            break;
+    }
     pqmsg->mp2 = qmsg.mp2;
     pqmsg->time = qmsg.time;
     pqmsg->ptl.x = qmsg.ptl.x;
     pqmsg->ptl.y = qmsg.ptl.y;
     return ret;
+}
+
+MRESULT Win16DefWindowProc(HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2)
+{
+    switch (msg) {
+         case WM_ADJUSTWINDOWPOS: {
+            mp1 = (MPARAM)GLoaderState.convert1616to32((uint32)mp1);
+            SWP16 *swp16 = (SWP16 *)mp1;
+            SWP *swp = (SWP *)mp1;
+            swp->hwnd = swp16->hwnd;
+            swp->hwndInsertBehind = swp16->hwndInsertBehind;
+            swp->x = swp16->x;
+            swp->y = swp16->y;
+            swp->cx = swp16->cx;
+            swp->cy = swp16->cy;
+            swp->fl = swp16->fs;
+            break;
+        }
+    }
+    return WinDefWindowProc(hwnd, msg, mp1, mp2);
+}
+
+MRESULT Win16DispatchMsg(HAB hab, PQMSG16 pqmsg)
+{
+    QMSG qmsg;
+    qmsg.hwnd = pqmsg->hwnd;
+    qmsg.msg = pqmsg->msg;
+    switch (qmsg.msg) {
+        case WM_ADJUSTWINDOWPOS:
+            qmsg.mp1 = (MPARAM)GLoaderState.convert1616to32((uint32)pqmsg->mp1);
+            break;
+        default:
+            qmsg.mp1 = pqmsg->mp1;
+            break;
+    }
+    qmsg.mp2 = pqmsg->mp2;
+    qmsg.time = pqmsg->time;
+    qmsg.ptl.x = pqmsg->ptl.x;
+    qmsg.ptl.y = pqmsg->ptl.y;
+    return WinDispatchMsg(hab, &qmsg);
+}
+    
+BOOL Win16DestroyWindow(HWND hwnd)
+{
+    return WinDestroyWindow(hwnd);
+}
+
+BOOL Win16DestroyMsgQueue(HMQ hmq)
+{
+    return WinDestroyMsgQueue(hmq);
+}
+
+BOOL Win16Terminate(HAB hab)
+{
+    return WinTerminate(hab);
+}
+
+HPS Win16BeginPaint(HWND hwnd, HPS hps, PRECTL prclPaint)
+{
+    return WinBeginPaint(hwnd, hps, prclPaint);
+}
+
+BOOL Win16EndPaint(HPS hps)
+{
+    return WinEndPaint(hps);
+}
+
+BOOL Win16FillRect(HPS hps, PRECTL prcl, LONG lColor)
+{
+    return WinFillRect(hps, prcl, lColor);
 }
 
 // end of pmwin.c ...

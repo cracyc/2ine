@@ -47,6 +47,7 @@ typedef struct
     ULONG   reserved;
 } QMSG, *PQMSG;
 
+#pragma pack(push, 1)
 typedef struct
 {
     HWND   hwnd;
@@ -56,7 +57,7 @@ typedef struct
     ULONG  time;
     POINTL ptl;
 } QMSG16, *PQMSG16;
-
+#pragma pack(pop)
 
 typedef MRESULT (OS2API FNWP)(HWND hwnd, ULONG msg, MPARAM mp1, MPARAM mp2);
 typedef FNWP *PFNWP;
@@ -294,6 +295,18 @@ typedef struct
     ULONG   ulReserved2;
 } SWP, *PSWP;
 
+#pragma pack(push, 1)
+typedef struct
+{
+    USHORT  fs;
+    SHORT   cy;
+    SHORT   cx;
+    SHORT   y;
+    SHORT   x;
+    HWND    hwndInsertBehind;
+    HWND    hwnd;
+} SWP16, *PSWP16;
+#pragma pack(pop)
 
 // used by WM_HITTEST
 enum {
@@ -911,6 +924,14 @@ OS2EXPORT HMQ OS2API16 Win16CreateMsgQueue(HAB hab, SHORT cmsg) OS2APIINFO(58);
 OS2EXPORT BOOL OS2API16 Win16RegisterClass(HAB hab, PSZ pszClassName, ULONG pfnWndProc, ULONG flStyle, USHORT cbWindowData) OS2APIINFO(3);
 OS2EXPORT HWND OS2API16 Win16CreateWindow(HWND hwndParent, PSZ pszClass, PSZ pszName, ULONG flStyle, SHORT x, SHORT y, SHORT cx, SHORT cy, HWND hwndOwner, HWND hwndInsertBehind, USHORT id, PVOID pCtlData, PVOID pPresParams) OS2APIINFO(6);
 OS2EXPORT BOOL OS2API16 Win16GetMsg(HAB hab, PQMSG16 pqmsg, HWND hwndFilter, USHORT msgFilterFirst, USHORT msgFilterLast) OS2APIINFO(65);
+OS2EXPORT MRESULT OS2API16 Win16DefWindowProc(HWND hwnd, USHORT msg, MPARAM mp1, MPARAM mp2) OS2APIINFO(178);
+OS2EXPORT MRESULT OS2API16 Win16DispatchMsg(HAB hab, PQMSG16 pqmsg) OS2APIINFO(68);
+OS2EXPORT BOOL OS2API16 Win16DestroyWindow(HWND hwnd) OS2APIINFO(7);
+OS2EXPORT BOOL OS2API16 Win16DestroyMsgQueue(HMQ hmq) OS2APIINFO(59);
+OS2EXPORT BOOL OS2API16 Win16Terminate(HAB hab) OS2APIINFO(247);
+OS2EXPORT HPS OS2API16 Win16BeginPaint(HWND hwnd, HPS hps, PRECTL prclPaint) OS2APIINFO(45);
+OS2EXPORT BOOL OS2API16 Win16EndPaint(HPS hps) OS2APIINFO(46);
+OS2EXPORT BOOL OS2API16 Win16FillRect(HPS hps, PRECTL prcl, LONG lColor) OS2APIINFO(173);
 
 #ifdef __cplusplus
 }
