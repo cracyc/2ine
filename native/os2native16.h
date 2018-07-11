@@ -140,12 +140,14 @@ POP BX
 RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling convention!) with retval in AX.
 */
 
-#define LX_NATIVE_INIT_16BIT_BRIDGE(fn, argbytes) { \
+#define LX_NATIVE_INIT_16BIT_BRIDGE(fn, argbytes, longret) { \
     fn##16 = ptr; \
     \
     /* instructions are in Intel syntax here, not AT&T. */ \
     /* USE16 */ \
     *(ptr++) = 0x53;  /* push bx */ \
+    if (!longret) \
+        *(ptr++) = 0x52; /* push dx */ \
     *(ptr++) = 0x51;  /* push cx */ \
     *(ptr++) = 0x56;  /* push si */ \
     *(ptr++) = 0x57;  /* push di */ \
@@ -197,9 +199,12 @@ RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling
         *(ptr++) = 0x89;  /* mov esp,eax... */ \
         *(ptr++) = 0xC4;  /*  ...mov esp,eax */ \
     } \
-    *(ptr++) = 0x83;  /* add eax,byte +0xe... */ \
-    *(ptr++) = 0xC0;  /*  ...add eax,byte +0xe */ \
-    *(ptr++) = 0x0E;  /*  ...add eax,byte +0xe */ \
+    *(ptr++) = 0x83;  /* add eax,byte +... */ \
+    *(ptr++) = 0xC0;  /*  ...add eax,byte + */ \
+    if (longret) \
+        *(ptr++) = 0x0E; /*  ...add eax,byte +0xe */ \
+    else \
+        *(ptr++) = 0x10;  /*  ...add eax,byte +0x10 */ \
     *(ptr++) = 0x53;  /* push ebx */ \
     *(ptr++) = 0x1E;  /* push ds */ \
     *(ptr++) = 0x06;  /* push es */ \
@@ -223,11 +228,13 @@ RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling
     memcpy(ptr, &callbridgeaddr, 4); ptr += 4; \
     *(ptr++) = 0xFF;  /* call dword [eax]... */ \
     *(ptr++) = 0xD0;  /*  ...call dword [eax] */ \
-    *(ptr++) = 0x89;  /* mov eax,edx... */ \
-    *(ptr++) = 0xC2;  /*  ...mov eax,edx */ \
-    *(ptr++) = 0xC1;  /* shl edx,byte 0x10... */ \
-    *(ptr++) = 0xE2;  /*  ...shl edx,byte 0x10 */ \
-    *(ptr++) = 0x10;  /*  ...shl edx,byte 0x10 */ \
+    if(longret) { \
+        *(ptr++) = 0x89;  /* mov eax,edx... */ \
+        *(ptr++) = 0xC2;  /*  ...mov eax,edx */ \
+        *(ptr++) = 0xC1;  /* shl edx,byte 0x10... */ \
+        *(ptr++) = 0xE2;  /*  ...shl edx,byte 0x10 */ \
+        *(ptr++) = 0x10;  /*  ...shl edx,byte 0x10 */ \
+    } \
     *(ptr++) = 0x83;  /* add esp,byte +0x4... */ \
     *(ptr++) = 0xC4;  /*  ...add esp,byte +0x4 */ \
     *(ptr++) = 0x04;  /*  ...add esp,byte +0x4 */ \
@@ -253,6 +260,8 @@ RETF 0x22   ; ...and back to the (far) caller, clearing the args (Pascal calling
     *(ptr++) = 0x5F;  /* pop di */ \
     *(ptr++) = 0x5E;  /* pop si */ \
     *(ptr++) = 0x59;  /* pop cx */ \
+    if (!longret) \
+        *(ptr++) = 0x5A; /* pop dx */ \
     *(ptr++) = 0x5B;  /* pop bx */ \
     *(ptr++) = 0xCA;  /* retf 0x22... */ \
     const uint16 argbytecount = argbytes; \

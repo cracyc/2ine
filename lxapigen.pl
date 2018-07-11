@@ -16,6 +16,10 @@ my %typesizes = (
     'HWND' => 4,
     'HPS' => 4,
     'MPARAM' => 4,
+    'VOID' => 0,
+    'BOOL' => 2,
+    'MRESULT' => 4,
+    'APIRET16' => 2,
 );
 
 sub typesize {
@@ -209,7 +213,8 @@ EOF
                 my ($t, $n) = /\A\s*(.*?)\s+(.*?)\s*\Z/;
                 $argbytes += typesize($t);
             }
-            print OUT "        LX_NATIVE_INIT_16BIT_BRIDGE($fn, $argbytes)\n";
+            my $retlong = typesize($tableref->{'rettype'}) == 4 ? 1 : 0;
+            print OUT "        LX_NATIVE_INIT_16BIT_BRIDGE($fn, $argbytes, $retlong)\n";
         }
 
         print OUT "    LX_NATIVE_MODULE_INIT_16BIT_SUPPORT_END()\n";

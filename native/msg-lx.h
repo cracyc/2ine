@@ -39,8 +39,8 @@ LX_NATIVE_MODULE_DEINIT({
 
 static int init16_msg(void) {
     LX_NATIVE_MODULE_INIT_16BIT_SUPPORT()
-        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16PutMessage, 8)
-        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16TrueGetMessage, 26)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16PutMessage, 8, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16TrueGetMessage, 26, 0)
     LX_NATIVE_MODULE_INIT_16BIT_SUPPORT_END()
     return 1;
 }
