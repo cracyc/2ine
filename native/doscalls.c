@@ -3700,7 +3700,7 @@ APIRET16 Dos16CreateThread(ULONG pfn, PUSHORT ptid, ULONG pstack)
             th_tsel = (th_tsel << 3) | 7;
             char *ptr = (char *)th_segment;
             LxModule *lxmod = GLoaderState.main_module;
-	    *(ptr++) = 0x60;  /* pusha */
+            *(ptr++) = 0x60;  /* pusha */
             *(ptr++) = 0x89;  /* mov edx, eax */
             *(ptr++) = 0xD0;  /* ...mov edx, eax */
             *(ptr++) = 0xC1;  /* shr eax,byte 0x10... */
@@ -3748,7 +3748,7 @@ APIRET16 Dos16CreateThread(ULONG pfn, PUSHORT ptid, ULONG pstack)
             *(ptr++) = 0x8B;  /* mov esp,0xab */
             *(ptr++) = 0x25;  /*  ...mov esp,0xab */
             memcpy(ptr, &esptmp, 4); ptr += 4;
-	    *(ptr++) = 0x61;  /* popa */
+            *(ptr++) = 0x61;  /* popa */
             *(ptr++) = 0xC3;  /* ret */
         }
         if(ptid) {
@@ -3814,6 +3814,22 @@ APIRET16 Dos16ResumeThread(USHORT tid)
     if (tid >= 10)
         return ERROR_INVALID_HANDLE;
     return DosResumeThread(tid16[tid]);
+}
+
+APIRET16 Dos16QFileInfo(USHORT hf, USHORT ulInfoLevel, PVOID pInfo, USHORT cbInfoBuf)
+{
+    if ((ulInfoLevel > 2) || (ulInfoLevel < 1))
+        return ERROR_INVALID_LEVEL;  // fix level 3
+    FILESTATUS4 stat;
+    APIRET ret = DosQueryFileInfo(hf, 2, &stat, sizeof(stat));
+    if (ret)
+        return ret;
+    memcpy(pInfo, &stat, 20);
+    char *info = (char *)pInfo;
+    *(uint16 *)(&info[20]) = stat.attrFile;
+    if (ulInfoLevel == 2)
+        *(uint32 *)(&info[22]) = stat.cbList;
+    return NO_ERROR;
 }
 
 static void usr1_handler(int sig)
