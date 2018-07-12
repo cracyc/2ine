@@ -2220,7 +2220,7 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
         goto loadne_failed;
     } // if
 
-    if ((!ne->reg_ss) || (ne->reg_ss > ne->num_segment_table_entries)) {
+    if (!isDLL && ((!ne->reg_ss) || (ne->reg_ss > ne->num_segment_table_entries))) {
         fprintf(stderr, "Bogus reg_ss in module '%s'\n", modname);
         goto loadne_failed;
     }
