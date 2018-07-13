@@ -3839,6 +3839,25 @@ APIRET16 Dos16GetDateTime(PDATETIME pdt)
     return DosGetDateTime(pdt);
 }
 
+APIRET16 Dos16SetMaxFH(USHORT cFH)
+{
+    return DosSetMaxFH(cFH);
+}
+
+APIRET16 Dos16CreateCSAlias(SEL ds, PSEL pcs)
+{
+    TRACE_NATIVE("Dos16CreateCSAlias(%u, %p)", ds, pcs);
+    uint32 addr = (uint32)GLoaderState.convert1616to32((uint32)ds << 16);
+    uint16 outoff;
+    int ret = GLoaderState.findSelector(addr, pcs, &outoff, 1);
+    return ret ? NO_ERROR : ERROR_ACCESS_DENIED;
+}
+
+APIRET16 Dos16DevConfig(PVOID pdevinfo, USHORT item, USHORT param)
+{
+    return DosDevConfig(pdevinfo, item);
+}
+
 static void usr1_handler(int sig)
 {
     TIB2 *tib2;

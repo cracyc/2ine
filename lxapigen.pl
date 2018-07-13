@@ -20,6 +20,7 @@ my %typesizes = (
     'BOOL' => 2,
     'MRESULT' => 4,
     'APIRET16' => 2,
+    'SEL' => 2,
 );
 
 sub typesize {

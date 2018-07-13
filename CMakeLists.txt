@@ -81,7 +81,7 @@ if(LX_LEGACY)
 endif()
 target_link_libraries(2ine "pthread")
 
-foreach(_I doscalls;msg;nls;quecalls;viocalls;kbdcalls;sesmgr;som;pmwin;pmshapi;pmgpi;tcpip32;pmgre;os2sm)
+foreach(_I doscalls;msg;nls;quecalls;viocalls;kbdcalls;sesmgr;som;pmwin;pmshapi;pmgpi;tcpip32;pmgre;os2sm;nampipes)
     add_library(${_I} SHARED "native/${_I}.c")
     if(LX_LEGACY)
         set_target_properties(${_I} PROPERTIES COMPILE_FLAGS "-m32")

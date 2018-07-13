@@ -87,6 +87,12 @@ static APIRET16 bridge16to32_Dos16GetHugeShift(uint8 *args) {
     return Dos16GetHugeShift(pcount);
 }
 
+static APIRET16 bridge16to32_Dos16CreateCSAlias(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PSEL, pcs);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SEL, ds);
+    return Dos16CreateCSAlias(ds, pcs);
+}
+
 static APIRET16 bridge16to32_Dos16GetMachineMode(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PBYTE, pmode);
     return Dos16GetMachineMode(pmode);
@@ -96,6 +102,13 @@ static APIRET16 bridge16to32_Dos16Beep(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, dur);
     LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, freq);
     return Dos16Beep(freq, dur);
+}
+
+static APIRET16 bridge16to32_Dos16DevConfig(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, param);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, item);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, pdevinfo);
+    return Dos16DevConfig(pdevinfo, item, param);
 }
 
 static APIRET16 bridge16to32_Dos16ChDir(uint8 *args) {
@@ -208,6 +221,11 @@ static APIRET16 bridge16to32_Dos16QHandType(uint8 *args) {
     return Dos16QHandType(handle, ptype, pflags);
 }
 
+static APIRET16 bridge16to32_Dos16SetMaxFH(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, cFH);
+    return Dos16SetMaxFH(cFH);
+}
+
 static APIRET16 bridge16to32_Dos16SetVec(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PVOID, prevaddress);
     LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PFN, routine);
@@ -314,8 +332,10 @@ LX_NATIVE_MODULE_16BIT_SUPPORT()
     LX_NATIVE_MODULE_16BIT_API(Dos16ReallocSeg)
     LX_NATIVE_MODULE_16BIT_API(Dos16FreeSeg)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetHugeShift)
+    LX_NATIVE_MODULE_16BIT_API(Dos16CreateCSAlias)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetMachineMode)
     LX_NATIVE_MODULE_16BIT_API(Dos16Beep)
+    LX_NATIVE_MODULE_16BIT_API(Dos16DevConfig)
     LX_NATIVE_MODULE_16BIT_API(Dos16ChDir)
     LX_NATIVE_MODULE_16BIT_API(Dos16ChgFilePtr)
     LX_NATIVE_MODULE_16BIT_API(Dos16Close)
@@ -331,6 +351,7 @@ LX_NATIVE_MODULE_16BIT_SUPPORT()
     LX_NATIVE_MODULE_16BIT_API(Dos16QFileMode)
     LX_NATIVE_MODULE_16BIT_API(Dos16QFsInfo)
     LX_NATIVE_MODULE_16BIT_API(Dos16QHandType)
+    LX_NATIVE_MODULE_16BIT_API(Dos16SetMaxFH)
     LX_NATIVE_MODULE_16BIT_API(Dos16SetVec)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetEnv)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetVersion)
@@ -367,7 +388,9 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ReallocSeg, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16FreeSeg, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetHugeShift, 4, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16CreateCSAlias, 6, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetMachineMode, 4, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16DevConfig, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ChDir, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ChgFilePtr, 12, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Close, 2, 0)
@@ -383,6 +406,7 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16QFileMode, 12, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16QFsInfo, 10, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16QHandType, 10, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16SetMaxFH, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16SetVec, 10, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetEnv, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetVersion, 4, 0)
@@ -415,8 +439,10 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16ReallocSeg, 38),
     LX_NATIVE_EXPORT16(Dos16FreeSeg, 39),
     LX_NATIVE_EXPORT16(Dos16GetHugeShift, 41),
+    LX_NATIVE_EXPORT16(Dos16CreateCSAlias, 43),
     LX_NATIVE_EXPORT16(Dos16GetMachineMode, 49),
     LX_NATIVE_EXPORT16(Dos16Beep, 50),
+    LX_NATIVE_EXPORT16(Dos16DevConfig, 52),
     LX_NATIVE_EXPORT16(Dos16ChDir, 57),
     LX_NATIVE_EXPORT16(Dos16ChgFilePtr, 58),
     LX_NATIVE_EXPORT16(Dos16Close, 59),
@@ -432,6 +458,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16QFileMode, 75),
     LX_NATIVE_EXPORT16(Dos16QFsInfo, 76),
     LX_NATIVE_EXPORT16(Dos16QHandType, 77),
+    LX_NATIVE_EXPORT16(Dos16SetMaxFH, 85),
     LX_NATIVE_EXPORT16(Dos16SetVec, 89),
     LX_NATIVE_EXPORT16(Dos16GetEnv, 91),
     LX_NATIVE_EXPORT16(Dos16GetVersion, 92),
