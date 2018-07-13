@@ -2748,7 +2748,14 @@ static int installSignalHandlers(void)
 
 int main(int argc, char **argv, char **envp)
 {
-    if (argc < 2) {
+    int path_is_lx_loader = 0;
+    {
+        const char *ptr = strrchr(argv[0], '/');
+        if (ptr) { ptr++; } else { ptr = argv[0]; }
+        path_is_lx_loader = (strcmp(ptr, "lx_loader") == 0);
+    }
+
+    if (argc < (1 + path_is_lx_loader)) {
         fprintf(stderr, "USAGE: %s <program.exe> [...programargs...]\n", argv[0]);
         return 1;
     }

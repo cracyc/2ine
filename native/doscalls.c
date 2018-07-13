@@ -1567,6 +1567,8 @@ static APIRET DosExecPgm_implementation(PCHAR pObjname, LONG cbObjname, ULONG ex
         return retval;
     } // if
 
+    argv[0] = pNameUnix;  // set exe name to full path so the loader can find it
+
     char **envp = calcEnvp(pEnv, pNameUnix, &retval);
     if (!argv) {
         free(argv);
