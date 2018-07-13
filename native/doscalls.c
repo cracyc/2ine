@@ -3834,6 +3834,11 @@ APIRET16 Dos16QFileInfo(USHORT hf, USHORT ulInfoLevel, PVOID pInfo, USHORT cbInf
     return NO_ERROR;
 }
 
+APIRET16 Dos16GetDateTime(PDATETIME pdt)
+{
+    return DosGetDateTime(pdt);
+}
+
 static void usr1_handler(int sig)
 {
     TIB2 *tib2;

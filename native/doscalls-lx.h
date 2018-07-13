@@ -59,6 +59,11 @@ static APIRET16 bridge16to32_Dos16Sleep(uint8 *args) {
     return Dos16Sleep(msec);
 }
 
+static APIRET16 bridge16to32_Dos16GetDateTime(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PDATETIME, pdt);
+    return Dos16GetDateTime(pdt);
+}
+
 static APIRET16 bridge16to32_Dos16AllocSeg(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, flags);
     LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PUSHORT, psel);
@@ -304,6 +309,7 @@ LX_NATIVE_MODULE_16BIT_SUPPORT()
     LX_NATIVE_MODULE_16BIT_API(Dos16ResumeThread)
     LX_NATIVE_MODULE_16BIT_API(Dos16SuspendThread)
     LX_NATIVE_MODULE_16BIT_API(Dos16Sleep)
+    LX_NATIVE_MODULE_16BIT_API(Dos16GetDateTime)
     LX_NATIVE_MODULE_16BIT_API(Dos16AllocSeg)
     LX_NATIVE_MODULE_16BIT_API(Dos16ReallocSeg)
     LX_NATIVE_MODULE_16BIT_API(Dos16FreeSeg)
@@ -356,6 +362,7 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ResumeThread, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16SuspendThread, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Sleep, 4, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetDateTime, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16AllocSeg, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ReallocSeg, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16FreeSeg, 2, 0)
@@ -403,6 +410,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16ResumeThread, 26),
     LX_NATIVE_EXPORT16(Dos16SuspendThread, 27),
     LX_NATIVE_EXPORT16(Dos16Sleep, 32),
+    LX_NATIVE_EXPORT16(Dos16GetDateTime, 33),
     LX_NATIVE_EXPORT16(Dos16AllocSeg, 34),
     LX_NATIVE_EXPORT16(Dos16ReallocSeg, 38),
     LX_NATIVE_EXPORT16(Dos16FreeSeg, 39),

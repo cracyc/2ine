@@ -552,6 +552,7 @@ OS2EXPORT APIRET16 OS2API16 Dos16SuspendThread(USHORT tid) OS2APIINFO(27);
 OS2EXPORT APIRET16 OS2API16 Dos16ResumeThread(USHORT tid) OS2APIINFO(26);
 OS2EXPORT APIRET16 OS2API16 DosSizeSeg(USHORT sel, PULONG size) OS2APIINFO(126);
 OS2EXPORT APIRET16 OS2API16 Dos16QFileInfo(USHORT hf, USHORT ulInfoLevel, PVOID pInfo, USHORT cbInfoBuf) OS2APIINFO(74);
+OS2EXPORT APIRET16 OS2API16 Dos16GetDateTime(PDATETIME pdt) OS2APIINFO(33);
 
 // !!! FIXME: these should probably get sorted alphabetically and/or grouped
 // !!! FIXME:  into areas of functionality, but for now, I'm just listing them
