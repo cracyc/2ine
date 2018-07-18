@@ -2227,7 +2227,7 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
 
     FIXME("What do we do if ne->NOAUTODATA doesn't agree with ne->auto_data_segment?");
     const NeSegmentTableEntry *seg = (const NeSegmentTableEntry *) (exe + ne->segment_table_offset);
-    const NeSegmentTableEntry *autodataseg = ne->auto_data_segment ? (seg + ne->auto_data_segment) : NULL;
+    const NeSegmentTableEntry *autodataseg = ne->auto_data_segment ? (seg + (ne->auto_data_segment - 1)) : NULL;
     if (autodataseg) {
         retval->autodatasize = autodataseg->size;
     }
@@ -2419,7 +2419,8 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
 
         // Now set all the pages of this object to the proper final permissions...
         const int iscode = ((seg->segment_flags & 0x7) == 0) ? 1 : 0;
-        const int preload = (seg->segment_flags & 0x40) ? 1 : 0;  // PRELOAD implies read-only, according to spec.
+        //const int preload = (seg->segment_flags & 0x40) ? 1 : 0;  // PRELOAD implies read-only, according to spec., SQLSERV put the stack in a preload segment and wine ignores preload flag
+        const int preload = 0;
         const int prot = ((preload && !iscode) ? 0 : PROT_WRITE) | (iscode ? PROT_EXEC : 0) | PROT_READ;
         retval->mmaps[i].prot = prot;
 
@@ -2589,7 +2590,11 @@ static LxModule *loadModuleByModuleNameInternal(const char *modname, const int d
         retval = loadModuleByPathInternal(fname, dependency_tree_depth);
 
     if (!retval) {
-        snprintf(fname, sizeof (fname), "./lib%s.so", modname);
+        char path[200];
+        readlink("/proc/self/exe", path, 200);
+        *strrchr(path, '/') = '\0';
+
+        snprintf(fname, sizeof (fname), "%s/lib%s.so", path, modname);
         for (char *ptr = fname; *ptr; ptr++) {
             *ptr = (((*ptr >= 'A') && (*ptr <= 'Z')) ? (*ptr - ('A' - 'a')) : *ptr);
         } // for
