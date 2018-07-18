@@ -454,6 +454,12 @@ APIRET16 VioWrtCharStrAtt(PCH pch, USHORT cb, USHORT usRow, USHORT usColumn, PBY
     return NO_ERROR;
 } // VioWrtCharStrAtt
 
+APIRET16 VioSetAnsi(USHORT indic, HVIO hvio)
+{
+    TRACE_NATIVE("VioSetAnsi(%u, %u)", (uint) indic, (uint) hvio);
+    return NO_ERROR;
+}
+
 APIRET16 VioWrtNCell(PBYTE pCell, USHORT cb, USHORT usRow, USHORT usColumn, HVIO hvio)
 {
     TRACE_NATIVE("VioWrtNCell(%p, %u, %u, %u, %u)", pCell, (uint) cb, (uint) usRow, (uint) usColumn, (uint) hvio);
