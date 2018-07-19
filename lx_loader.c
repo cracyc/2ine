@@ -2128,7 +2128,7 @@ static int fixupNeSegment(const NeSegmentTableEntry *seg, LxModule *lxmod, uint8
                 default: fprintf(stderr, "unknown fixup type %u\n", (uint) (srctype & 0xF)); break;
             } // switch
         } else {
-            while (srcchain_offset < seg->size) {  // strictly, this should end with 0xFFFF, but we drop out for any out-of-bounds index.
+            while (srcchain_offset < seg->minimum_allocation) {  // strictly, this should end with 0xFFFF, but we drop out for any out-of-bounds index.
                 uint16 *source = (uint16 *) (dst + srcchain_offset);
                 srcchain_offset = *source;
                 switch (srctype & 0xF) {
