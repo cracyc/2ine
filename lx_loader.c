@@ -2299,7 +2299,7 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
             if (!autodataseg) {
                 goto loadne_failed;
             }
-            sp = autodataseg->size + ne->stack_size;
+            sp = autodataseg->minimum_allocation + ne->stack_size;
         }
 
         retval->esp = (lxSelectorToSegment(retval->mmaps[ne->reg_ss-1].alias) << 16) | (sp ? sp : 0xFFFF);
