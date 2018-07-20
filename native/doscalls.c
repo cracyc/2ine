@@ -3290,6 +3290,43 @@ APIRET DosResumeThread(TID tid)
     return NO_ERROR;
 }
 
+APIRET DosSearchPath(ULONG flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf, ULONG cbBuf)
+{
+    TRACE_NATIVE("DosSearchPath(%u, '%s', '%s', %p, %u)", flag, pszPathOrName, pszFilename, pBuf, cbBuf);
+    char path[256];
+    if ((flag & 1) && !access(pszFilename, F_OK)) {
+        getcwd(path, 256);
+        strncat(path, pszFilename, 256);
+        return queryPathInfoFullName(path, pBuf, cbBuf);
+    }
+
+    char *spath = pszPathOrName;
+    char spath2[1024];
+    if(flag & 2) {
+        char *envpath = spath2;
+        if (DosScanEnv(pszPathOrName, &envpath) != NO_ERROR)
+            return ERROR_ENVVAR_NOT_FOUND;
+    } else
+        strncpy(spath2, spath, 1024);
+
+    const char *pathent;
+    while ((pathent = strtok(spath2, ";"))) {
+        char *unixpath;
+        uint32 err;
+        strncpy(path, pathent, 256);
+        strncat(path, pszFilename, 256);
+        unixpath = makeUnixPath(path, &err);
+        if (unixpath) {
+            free(unixpath);
+            strncpy((char *)pBuf, path, cbBuf);
+            return NO_ERROR;
+        }
+        free(unixpath);
+    }
+    return ERROR_FILE_NOT_FOUND;
+}
+
+
 APIRET16 Dos16GetVersion(PUSHORT pver)
 {
     TRACE_NATIVE("Dos16GetVersion(%p)", pver);
@@ -3309,7 +3346,7 @@ APIRET16 Dos16GetMachineMode(PBYTE pmode)
 APIRET16 Dos16GetHugeShift(PUSHORT pcount)
 {
     TRACE_NATIVE("Dos16GetHugeShift(%p)", pcount);
-    *pcount = 0;  FIXME("maybe?");
+    *pcount = 3; // selectors increment by 8 
     return NO_ERROR;
 } // Dos16GetHugeShift
 
@@ -3856,6 +3893,27 @@ APIRET16 Dos16CreateCSAlias(SEL ds, PSEL pcs)
 APIRET16 Dos16DevConfig(PVOID pdevinfo, USHORT item, USHORT param)
 {
     return DosDevConfig(pdevinfo, item);
+}
+
+APIRET16 Dos16AllocHuge(USHORT numseg, USHORT size, PSEL sel, USHORT maxseg, USHORT flags)
+{
+    TRACE_NATIVE("Dos16AllocHuge(%u, %u, %p, %u, %u)", numseg, size, sel, maxseg, flags);
+    // this depends on allocSegment allocating selectors sequentially
+    if (!numseg && !size) // allocating 0?
+        return ERROR_INVALID_PARAMETER;
+    for (int i = 0; i < numseg + (size != 0); i++)
+    {
+        uint16 selector;
+        GLoaderState.allocSegment(&selector, 0);
+        if (!i)
+            *sel = selector << 3 | 7;
+    }
+    return NO_ERROR;
+}
+
+APIRET16 Dos16SearchPath(USHORT flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf, USHORT cbBuf)
+{
+    return DosSearchPath(flag, pszPathOrName, pszFilename, pBuf, cbBuf);
 }
 
 static void usr1_handler(int sig)
