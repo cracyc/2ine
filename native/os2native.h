@@ -57,6 +57,7 @@ OS2EXPORT void lxNativeModuleDeinit(void);
 
 #define LX_NATIVE_EXPORT(fn, ord) { ord, #fn, fn, NULL }
 #define LX_NATIVE_EXPORT_DIFFERENT_NAME(fn, fnname, ord) { ord, fnname, fn, NULL }
+#define LX_NATIVE_EXPORT_CONSTANT(val, name, ord) { ord, name, (void *)val, NULL }
 
 #define LX_NATIVE_MODULE_INIT_END() \
     }; \

@@ -507,6 +507,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16Error, 120),
     LX_NATIVE_EXPORT16(DosSizeSeg, 126),
     LX_NATIVE_EXPORT16(Dos16GetCp, 130),
+    LX_NATIVE_EXPORT_CONSTANT(3, "DosHugeShift", 135),
     LX_NATIVE_EXPORT16(Dos16Read, 137),
     LX_NATIVE_EXPORT16(Dos16Write, 138),
     LX_NATIVE_EXPORT16(DosSemRequest, 140),

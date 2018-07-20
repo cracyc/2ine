@@ -54,24 +54,25 @@ while (readdir(DIRH)) {
         next if not /OS2APIINFO/;
         my $line = $_;
 
-        if (/\AOS2EXPORT\s+(.*?)\s+(OS2API|OS2API16)\s+(.*?)\s*\((.*?)\)\s+OS2APIINFO\((.*?)\);/) {
+        if (/\A(OS2EXPORT|OS2EXPORTCONSTANT)\b\s*(.*?)\s*\b(OS2API|OS2API16)\b\s*(\w*)\s*\(?(.*?)\)?\s*\bOS2APIINFO\((.*?)\);/) {
             my %table = (
-                'rettype' => $1,
-                'apitype' => $2,
-                'fn' => $3,
-                'args' => $4,
+                'rettype' => $2,
+                'apitype' => $3,
+                'fn' => $4,
+                'args' => $5,
             );
-            my $apiinfo = $5;
+            my $apiinfo = $6;
 
             my $is16bit = $table{'apitype'} eq 'OS2API16';
             $table{'is16bit'} = $is16bit;
             $has16bitfns |= $is16bit;
 
-            #print("rettype='$rettype' fn='$fn' args='$args' apiinfo='$apiinfo'\n");
+            #print("rettype='$table{rettype}' fn='$table{fn}' args='$table{args}' apiinfo='$apiinfo'\n");
 
             my $fn = $table{'fn'};
             my $ordinal = undef;
             my $expname = undef;
+            my $value = undef;
             if ($apiinfo =~ /\A(\d+)\Z/) {
                 $ordinal = int($1);
             } else {
@@ -87,6 +88,8 @@ while (readdir(DIRH)) {
                         }
                     } elsif ($infokey eq 'name') {
                         $expname = $infoval;
+                    } elsif ($infokey eq 'val') {
+                        $value = $infoval;
                     } else {
                         die("unknown OS2APIINFO key '$infokey' for '$fn'\n");
                     }
@@ -95,6 +98,7 @@ while (readdir(DIRH)) {
 
             $table{'ordinal'} = $ordinal;
             $table{'expname'} = $expname if defined $expname;
+            $table{'value'} = $value if defined $value;
 
             if (defined $ordinalmap{$ordinal}) {
                 my $dupfn = $ordinalmap{$ordinal}{'fn'};
@@ -235,10 +239,13 @@ EOF
         my $fn = $tableref->{'fn'};
         my $expname = $tableref->{'expname'};
         my $ordinal = $tableref->{'ordinal'};
+        my $value = $tableref->{'value'};
         my $suffix = $tableref->{'is16bit'} ? '16' : '';
 
         print OUT $comma;
-        if (defined $expname) {
+        if (defined $value) {
+            print OUT "    LX_NATIVE_EXPORT_CONSTANT($value, \"$expname\", $ordinal)";
+        } elsif (defined $expname) {
             print OUT "    LX_NATIVE_EXPORT${suffix}_DIFFERENT_NAME($fn, \"$expname\", $ordinal)";
         } else {
             print OUT "    LX_NATIVE_EXPORT${suffix}($fn, $ordinal)";

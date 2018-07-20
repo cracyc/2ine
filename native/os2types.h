@@ -27,6 +27,10 @@ extern "C" {
 #define OS2EXPORT __attribute__((visibility("default")))
 #endif
 
+#ifndef OS2EXPORTCONSTANT
+#define OS2EXPORTCONSTANT
+#endif
+
 #ifndef OS2API
 #define OS2API APIENTRY
 #endif

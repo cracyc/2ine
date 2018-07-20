@@ -2084,8 +2084,10 @@ static int fixupNeSegment(const NeSegmentTableEntry *seg, LxModule *lxmod, uint8
                 const uint16 ordinal = ((const uint16 *) targetptr)[1];
                 const LxExport *lxexp = NULL;
                 void *addr = getModuleProcAddrByOrdinal(lxmod->dependencies[module-1], ordinal, &lxexp, 1, 1);
-                if (addr) {
+                if (addr && lxexp->object) { // if !object its not a ptr
                     target = lxConvert32to1616(addr);
+                } else {
+                    target = (uint32)addr;
                 }
             }
             break;
