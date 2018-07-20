@@ -3326,6 +3326,19 @@ APIRET DosSearchPath(ULONG flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf,
     return ERROR_FILE_NOT_FOUND;
 }
 
+APIRET DosSetPriority(ULONG scope, ULONG ulclass, LONG delta, ULONG portid)
+{
+    TRACE_NATIVE("DosSetPriority(%u, %u, %u, %u)", scope, ulclass, delta, portid);
+    FIXME("implement");
+    return NO_ERROR;
+}
+
+APIRET DosError(ULONG error)
+{
+    TRACE_NATIVE("DosError(%u)", error);
+    FIXME("implement");
+    return NO_ERROR;
+}
 
 APIRET16 Dos16GetVersion(PUSHORT pver)
 {
@@ -3914,6 +3927,16 @@ APIRET16 Dos16AllocHuge(USHORT numseg, USHORT size, PSEL sel, USHORT maxseg, USH
 APIRET16 Dos16SearchPath(USHORT flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf, USHORT cbBuf)
 {
     return DosSearchPath(flag, pszPathOrName, pszFilename, pBuf, cbBuf);
+}
+
+APIRET16 Dos16SetPrty(USHORT scope, USHORT usclass, SHORT delta, USHORT portid)
+{
+    return DosSetPriority(scope, usclass, delta, portid);
+}
+
+APIRET16 Dos16Error(USHORT error)
+{
+    return DosError(error);
 }
 
 static void usr1_handler(int sig)

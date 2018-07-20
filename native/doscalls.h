@@ -558,6 +558,8 @@ OS2EXPORT APIRET16 OS2API16 Dos16CreateCSAlias(SEL ds, PSEL pcs) OS2APIINFO(43);
 OS2EXPORT APIRET16 OS2API16 Dos16DevConfig(PVOID pdevinfo, USHORT item, USHORT param) OS2APIINFO(52);
 OS2EXPORT APIRET16 OS2API16 Dos16AllocHuge(USHORT numseg, USHORT size, PSEL sel, USHORT maxseg, USHORT flags) OS2APIINFO(40);
 OS2EXPORT APIRET16 OS2API16 Dos16SearchPath(USHORT flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf, USHORT cbBuf) OS2APIINFO(151);
+OS2EXPORT APIRET16 OS2API16 Dos16SetPrty(USHORT scope, USHORT usclass, SHORT delta, USHORT portid) OS2APIINFO(11);
+OS2EXPORT APIRET16 OS2API16 Dos16Error(USHORT error) OS2APIINFO(120);
 
 // !!! FIXME: these should probably get sorted alphabetically and/or grouped
 // !!! FIXME:  into areas of functionality, but for now, I'm just listing them
@@ -637,6 +639,8 @@ OS2EXPORT APIRET OS2API DosBeep(ULONG freq, ULONG dur) OS2APIINFO(286);
 OS2EXPORT APIRET OS2API DosSuspendThread(TID tid) OS2APIINFO(238);
 OS2EXPORT APIRET OS2API DosResumeThread(TID tid) OS2APIINFO(237);
 OS2EXPORT APIRET OS2API DosSearchPath(ULONG flag, PSZ pszPathOrName, PSZ pszFilename, PBYTE pBuf, ULONG cbBuf) OS2APIINFO(228);
+OS2EXPORT APIRET OS2API DosSetPriority(ULONG scope, ULONG ulclass, LONG delta, ULONG portid) OS2APIINFO(236);
+OS2EXPORT APIRET OS2API DosError(ULONG error) OS2APIINFO(212);
 
 #ifdef __cplusplus
 }

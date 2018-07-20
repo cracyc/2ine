@@ -30,6 +30,14 @@ static APIRET16 bridge16to32_Dos16GetInfoSeg(uint8 *args) {
     return Dos16GetInfoSeg(globalseg, localseg);
 }
 
+static APIRET16 bridge16to32_Dos16SetPrty(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, portid);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(SHORT, delta);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, usclass);
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, scope);
+    return Dos16SetPrty(scope, usclass, delta, portid);
+}
+
 static APIRET16 bridge16to32_Dos16HoldSignal(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, action);
     return Dos16HoldSignal(action);
@@ -258,6 +266,11 @@ static APIRET16 bridge16to32_Dos16GetPID(uint8 *args) {
     return Dos16GetPID(ppidinfo);
 }
 
+static APIRET16 bridge16to32_Dos16Error(uint8 *args) {
+    LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, error);
+    return Dos16Error(error);
+}
+
 static APIRET16 bridge16to32_DosSizeSeg(uint8 *args) {
     LX_NATIVE_MODULE_16BIT_BRIDGE_PTRARG(PULONG, size);
     LX_NATIVE_MODULE_16BIT_BRIDGE_ARG(USHORT, sel);
@@ -340,6 +353,7 @@ LX_NATIVE_MODULE_16BIT_SUPPORT()
     LX_NATIVE_MODULE_16BIT_API(Dos16CWait)
     LX_NATIVE_MODULE_16BIT_API(Dos16Exit)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetInfoSeg)
+    LX_NATIVE_MODULE_16BIT_API(Dos16SetPrty)
     LX_NATIVE_MODULE_16BIT_API(Dos16HoldSignal)
     LX_NATIVE_MODULE_16BIT_API(Dos16SetSigHandler)
     LX_NATIVE_MODULE_16BIT_API(Dos16ResumeThread)
@@ -375,6 +389,7 @@ LX_NATIVE_MODULE_16BIT_SUPPORT()
     LX_NATIVE_MODULE_16BIT_API(Dos16GetEnv)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetVersion)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetPID)
+    LX_NATIVE_MODULE_16BIT_API(Dos16Error)
     LX_NATIVE_MODULE_16BIT_API(DosSizeSeg)
     LX_NATIVE_MODULE_16BIT_API(Dos16GetCp)
     LX_NATIVE_MODULE_16BIT_API(Dos16Read)
@@ -398,6 +413,7 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16CWait, 14, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Exit, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetInfoSeg, 8, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16SetPrty, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16HoldSignal, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16SetSigHandler, 16, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ResumeThread, 2, 0)
@@ -432,6 +448,7 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetEnv, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetVersion, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetPID, 4, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Error, 2, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(DosSizeSeg, 6, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetCp, 10, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Read, 12, 0)
@@ -451,6 +468,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16CWait, 2),
     LX_NATIVE_EXPORT16(Dos16Exit, 5),
     LX_NATIVE_EXPORT16(Dos16GetInfoSeg, 8),
+    LX_NATIVE_EXPORT16(Dos16SetPrty, 11),
     LX_NATIVE_EXPORT16(Dos16HoldSignal, 13),
     LX_NATIVE_EXPORT16(Dos16SetSigHandler, 14),
     LX_NATIVE_EXPORT16(Dos16ResumeThread, 26),
@@ -486,6 +504,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16GetEnv, 91),
     LX_NATIVE_EXPORT16(Dos16GetVersion, 92),
     LX_NATIVE_EXPORT16(Dos16GetPID, 94),
+    LX_NATIVE_EXPORT16(Dos16Error, 120),
     LX_NATIVE_EXPORT16(DosSizeSeg, 126),
     LX_NATIVE_EXPORT16(Dos16GetCp, 130),
     LX_NATIVE_EXPORT16(Dos16Read, 137),
@@ -498,6 +517,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT16(Dos16CreateThread, 145),
     LX_NATIVE_EXPORT16(Dos16SearchPath, 151),
     LX_NATIVE_EXPORT(DosSetMaxFH, 209),
+    LX_NATIVE_EXPORT(DosError, 212),
     LX_NATIVE_EXPORT(DosSetPathInfo, 219),
     LX_NATIVE_EXPORT(DosQueryPathInfo, 223),
     LX_NATIVE_EXPORT(DosQueryHType, 224),
@@ -507,6 +527,7 @@ LX_NATIVE_MODULE_INIT({ if (!init16_doscalls()) return 0; })
     LX_NATIVE_EXPORT(DosGetDateTime, 230),
     LX_NATIVE_EXPORT(DosDevConfig, 231),
     LX_NATIVE_EXPORT(DosExit, 234),
+    LX_NATIVE_EXPORT(DosSetPriority, 236),
     LX_NATIVE_EXPORT(DosResumeThread, 237),
     LX_NATIVE_EXPORT(DosSuspendThread, 238),
     LX_NATIVE_EXPORT(DosResetBuffer, 254),
