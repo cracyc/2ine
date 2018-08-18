@@ -2083,7 +2083,7 @@ static int fixupNeSegment(const NeSegmentTableEntry *seg, LxModule *lxmod, uint8
                 const uint16 module = ((const uint16 *) targetptr)[0];
                 const uint16 ordinal = ((const uint16 *) targetptr)[1];
                 const LxExport *lxexp = NULL;
-                void *addr = getModuleProcAddrByOrdinal(lxmod->dependencies[module-1], ordinal, &lxexp, 1, 1);
+                void *addr = getModuleProcAddrByOrdinal(lxmod->dependencies[module-1], ordinal, &lxexp, 1, lxmod->dependencies[module-1]->nativelib != 0);
                 if (addr && lxexp->object) { // if !object its not a ptr
                     target = lxConvert32to1616(addr);
                 } else {
@@ -2397,6 +2397,16 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
             goto loadne_failed;
     } // if
 
+    // put module in the loaded list before loading another
+    // !!! FIXME: mutex this
+    if (isDLL) {
+        if (GLoaderState.loaded_modules) {
+            retval->next = GLoaderState.loaded_modules;
+            GLoaderState.loaded_modules->prev = retval;
+        }
+        GLoaderState.loaded_modules = retval;
+    }
+
     // Load other dependencies of this module.
     const uint16 *import_modules_table = (const uint16 *) (exe + ne->module_reference_table_offset);
     for (uint32 i = 0; i < ne->num_module_ref_table_entries; i++) {
@@ -2452,19 +2462,13 @@ static LxModule *loadNeModule(const char *fname, const uint8 *origexe, uint8 *ex
         runNeLibraryInit(retval);
 
         retval->initialized = 1;
-
-        // module is ready to use, put it in the loaded list.
-        // !!! FIXME: mutex this
-        if (GLoaderState.loaded_modules) {
-            retval->next = GLoaderState.loaded_modules;
-            GLoaderState.loaded_modules->prev = retval;
-        } // if
-        GLoaderState.loaded_modules = retval;
     } // if
 
     return retval;
 
 loadne_failed:
+    if (GLoaderState.loaded_modules == retval)
+        GLoaderState.loaded_modules = retval->next;
     freeLxModule(retval);
     return NULL;
 } // loadNeModule
