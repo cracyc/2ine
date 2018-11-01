@@ -409,7 +409,6 @@ LX_NATIVE_MODULE_DEINIT({
 
 static int init16_doscalls(void) {
     LX_NATIVE_MODULE_INIT_16BIT_SUPPORT()
-        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Beep, 4)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16CWait, 14, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Exit, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetInfoSeg, 8, 0)
@@ -427,6 +426,7 @@ static int init16_doscalls(void) {
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetHugeShift, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16CreateCSAlias, 6, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16GetMachineMode, 4, 0)
+        LX_NATIVE_INIT_16BIT_BRIDGE(Dos16Beep, 4, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16DevConfig, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ChDir, 8, 0)
         LX_NATIVE_INIT_16BIT_BRIDGE(Dos16ChgFilePtr, 12, 0)
